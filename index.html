@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="One wildfire a day, on your real table. A seated mixed reality game for Meta Quest." />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <title>Holdline</title>
+    <style>
+      :root {
+        --board: #e4e2dd;
+        --card: #f3f1ed;
+        --ink: #1d1c1a;
+        --graphite: #5d5a56;
+        --rule: #cac7c2;
+        --fire: #f6590c;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--board);
+        color: var(--ink);
+        font-family: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif;
+      }
+      #scene-container {
+        position: fixed;
+        inset: 0;
+      }
+      #landing {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 32px max(16px, 6vw);
+        gap: 20px;
+        pointer-events: none;
+      }
+      #landing[hidden] {
+        display: none;
+      }
+      #landing > * {
+        pointer-events: auto;
+      }
+      .wordmark {
+        font-family: 'Archivo', 'Segoe UI', system-ui, sans-serif;
+        font-weight: 800;
+        font-size: clamp(40px, 7vw, 72px);
+        letter-spacing: 0.01em;
+        margin: 0;
+      }
+      .tagline {
+        font-size: clamp(18px, 2.4vw, 24px);
+        margin: 0;
+        max-width: 28ch;
+      }
+      .facts {
+        display: flex;
+        gap: 18px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        color: var(--graphite);
+        font-size: 17px;
+      }
+      .enter {
+        align-self: flex-start;
+        font: inherit;
+        font-size: 19px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--ink);
+        border: 0;
+        border-radius: 6px;
+        padding: 16px 24px;
+        min-height: 56px;
+        cursor: pointer;
+      }
+      .enter:disabled {
+        background: var(--graphite);
+        cursor: default;
+      }
+      .enter:focus-visible {
+        outline: 3px solid var(--fire);
+        outline-offset: 3px;
+      }
+      .note {
+        margin: 0;
+        font-size: 17px;
+      }
+      .links a {
+        color: var(--ink);
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scene-container"></div>
+    <main id="landing">
+      <h1 class="wordmark" data-copy="name"></h1>
+      <p class="tagline" data-copy="tagline"></p>
+      <ul class="facts"></ul>
+      <button class="enter" type="button" disabled></button>
+      <p class="note" hidden></p>
+      <nav class="links"><a href="./privacy.html" data-copy="privacy"></a></nav>
+    </main>
+    <script type="module" src="/src/index.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["./**/*.ts", "../src/sim/**/*.ts", "../src/store/**/*.ts", "../src/copy.ts", "../src/game/unlocks.ts", "../src/xr/anchor-service.ts", "../vitest.config.ts"]
+}

@@ -1,0 +1,121 @@
+// Every player facing string. tests/logic/copy-scan.test.ts checks this module:
+// no dash or hyphen characters, no emojis, no mention of AI, instructions at most 4 words.
+
+export const BRAND = {
+  name: 'Holdline',
+  tagline: 'One wildfire a day, on your real table.',
+} as const;
+
+export const WEB = {
+  enter: 'Enter mixed reality',
+  facts: ['Hands only.', 'Seated.', '5 minutes.'],
+  privacyLink: 'Privacy',
+  unsupported: 'Open this page in the Meta Quest browser.',
+  loading: 'Loading',
+  privacyTitle: 'Privacy',
+  privacy: [
+    { title: 'No account', body: 'You never sign up or log in.' },
+    { title: 'No tracking', body: 'No analytics, no ads, no cookies.' },
+    { title: 'Progress stays on this device', body: 'Your fires and journal live in this browser only.' },
+    { title: 'No camera access', body: 'Holdline uses room surfaces and hand tracking from the headset, never its cameras.' },
+  ],
+  back: 'Back to Holdline',
+} as const;
+
+// Short instructions shown on the strip above the board (4 words max).
+export const INSTRUCTION = {
+  place: 'Pinch to place',
+  light: 'Pinch to light',
+  downwind: 'It leans downwind',
+  uphill: 'Uphill runs faster',
+  grass: 'Grass burns fast',
+  roads: 'Roads stop it',
+  draw: 'Draw a line',
+  contained: 'Contained',
+  water: 'Look, pinch, drag',
+  backburn: 'Hold on a line',
+  turn: 'Two hands to turn',
+  move: 'Grab to move',
+  watch: 'Watch it run',
+  plan: 'Read the wind',
+} as const;
+
+export const BRIEF = {
+  day: (n: number) => (n === 0 ? 'Day 0' : `Day ${n}`),
+  goal: (houses: number) => `Protect all ${houses} houses`,
+  windLabel: 'Wind',
+  windWords: ['Calm', 'Light', 'Strong', 'Gale'],
+  start: 'Start',
+} as const;
+
+export const PAUSE = {
+  title: 'Paused',
+  resume: 'Resume',
+  settings: 'Settings',
+  about: 'About',
+} as const;
+
+export const RESULT = {
+  you: 'You',
+  baseline: 'If no one had acted',
+  houses: (standing: number, total: number) => `${standing} of ${total}`,
+  housesLabel: 'houses standing',
+  burned: (ha: number) => `${ha} ha burned`,
+  replay: 'Replay',
+  done: 'Done',
+  slowerFire: 'Slower fire',
+  outOfTime: 'Time ran out',
+  fireOut: 'Fire out',
+} as const;
+
+export const ABOUT = {
+  title: 'About',
+  model: 'Simplified model, not a forecast.',
+  safety: 'For real fire safety, follow your local authorities.',
+  close: 'Close',
+} as const;
+
+export const CAPTION = {
+  crackling: 'Crackling',
+  wind: 'Wind',
+  aircraft: 'Aircraft',
+  digging: 'Digging',
+  water: 'Water',
+  windShift: 'Wind shift',
+} as const;
+
+export const STATUS = {
+  notSaved: 'Progress not saved',
+  scanTable: 'Scan table',
+  placeAgain: 'Place again',
+} as const;
+
+export const TOOL = {
+  dig: 'Dig line',
+  water: 'Water drop',
+  backburn: 'Backburn',
+  pause: 'Pause',
+} as const;
+
+export const FUEL_NAMES = ['Grass', 'Brush', 'Forest', 'Rock', 'Water', 'Road', 'House'] as const;
+
+/** Every string in this module, for the copy scan test. */
+export function allCopy(): { key: string; text: string; instruction: boolean }[] {
+  const out: { key: string; text: string; instruction: boolean }[] = [];
+  const visit = (key: string, value: unknown, instruction: boolean) => {
+    if (typeof value === 'string') out.push({ key, text: value, instruction });
+    else if (typeof value === 'function') {
+      const fn = value as (...args: number[]) => string;
+      out.push({ key, text: fn(6, 6), instruction });
+      out.push({ key, text: fn(0, 6), instruction });
+    } else if (Array.isArray(value)) value.forEach((v, i) => visit(`${key}[${i}]`, v, instruction));
+    else if (value && typeof value === 'object')
+      for (const [k, v] of Object.entries(value)) visit(`${key}.${k}`, v, instruction);
+  };
+  const groups: Record<string, unknown> = {
+    BRAND, WEB, BRIEF, PAUSE, RESULT, ABOUT, CAPTION, STATUS, TOOL, FUEL_NAMES,
+  };
+  for (const [k, v] of Object.entries(groups)) visit(k, v, false);
+  visit('INSTRUCTION', INSTRUCTION, true);
+  return out;
+}
