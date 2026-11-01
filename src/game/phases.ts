@@ -11,13 +11,16 @@ import {
   createSystem,
   type Entity,
 } from '@iwsdk/core';
-import { BRIEF, INSTRUCTION, RESULT, ABOUT } from '../copy.js';
+import { BRIEF, INSTRUCTION, RESULT, ABOUT, STATUS } from '../copy.js';
+import { ToolInput } from '../input/tool-system.js';
 import { Board } from '../render/board.js';
 import { TICK_HZ, localDayId, windWord } from '../sim/day.js';
+import { W } from '../sim/grid.js';
 import type { OutcomeSide, RunKind } from '../sim/types.js';
-import { ProgressStore } from '../store/progress.js';
+import { ProgressStore, type StoredRun } from '../store/progress.js';
 import { SafeStore } from '../store/storage.js';
 import { Panel, uiUrl } from '../ui/panels.js';
+import { Toolbar } from '../ui/toolbar.js';
 import type { OutcomeInfo } from '../worker/client.js';
 import { placement } from '../xr/placement-system.js';
 import { Session } from './session.js';
@@ -28,6 +31,11 @@ export type Phase = 'landing' | 'placing' | 'brief' | 'plan' | 'live' | 'resolvi
 const RISE_S = 8;
 const PLAN_S = 30;
 const LAPSE_S = 10;
+/** How long a status line (No crew line left) stays on the strip. */
+const NOTICE_S = 2.5;
+/** Toolbar size in meters (UIKitML authored at 0.25 mm per px: 900 by 308). */
+const TOOLBAR_W = 0.225;
+const TOOLBAR_H = 0.077;
 /** Where the board waits in the browser view (matches iwsdk.config.json's camera). */
 const PREVIEW_POSITION = new Vector3(0, 0.76, -0.47);
 
@@ -44,6 +52,13 @@ export interface GameStatus {
   candidates: number;
   outcome: OutcomeInfo['outcome'] | null;
   baseline: OutcomeSide | null;
+  budgetLeft: number;
+  lines: number;
+  inputs: number;
+  drawing: boolean;
+  lastStroke: 'far' | 'near' | null;
+  resumable: boolean;
+  dugCells: number;
 }
 
 export class GameSystem extends createSystem({}) {
@@ -62,6 +77,13 @@ export class GameSystem extends createSystem({}) {
   private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result', Panel>;
   private readonly camWorld = new Vector3();
   private immersive = false;
+  private toolbar!: Toolbar;
+  private tools!: ToolInput;
+  private lineId = 0;
+  private lineCount = 0;
+  private pendingCells = 0;
+  private notice = 0;
+  private storedRun: StoredRun | null = null;
 
   init(): void {
     this.store = new ProgressStore(new SafeStore());
@@ -87,6 +109,13 @@ export class GameSystem extends createSystem({}) {
     handle.addComponent(OneHandGrabbable, { rotate: false, translate: true });
 
     this.createPanels();
+    this.tools = new ToolInput(this.world, this.board, this.boardEntity, this.player.raySpaces, this.player, {
+      packed: () => this.session?.frame?.stateRGBA ?? null,
+      budgetLeft: () => this.budgetLeft(),
+      firePoint: () => this.firePoint(),
+      commit: (cells) => this.dig(cells),
+      outOfBudget: () => this.showNotice(STATUS.noBudget),
+    });
     placement.footprint = { widthM: dims.widthM, depthM: dims.depthM };
     placement.onHandle = (h) => this.store.saveProgress({ anchorHandle: h });
 
@@ -104,7 +133,7 @@ export class GameSystem extends createSystem({}) {
     this.panels = {
       brief: make('BriefingPanel', 'briefing.uikitml', 0.4, 0.25),
       strip: make('InstructionStrip', 'strip.uikitml', 0.16, 0.03, false),
-      toolbar: make('Toolbar', 'toolbar.uikitml', 0.072, 0.078),
+      toolbar: make('Toolbar', 'toolbar.uikitml', TOOLBAR_W, TOOLBAR_H),
       pause: make('PausePanel', 'pause.uikitml', 0.32, 0.198),
       about: make('AboutPanel', 'about.uikitml', 0.32, 0.198),
       result: make('ResultPanel', 'result.uikitml', 0.4, 0.25),
@@ -115,12 +144,14 @@ export class GameSystem extends createSystem({}) {
     stand(this.panels.pause);
     stand(this.panels.about);
     stand(this.panels.result);
-    // Just in front of the near edge, low, so it never covers the board from the eyes.
-    this.panels.strip.place(0, 0.03, depthM / 2 + 0.045, -0.95);
-    this.panels.toolbar.place(widthM / 2 - 0.05, 0.035, depthM / 2 + 0.06, -0.85);
+    // Just in front of the near edge, low, so they never cover the board from the eyes:
+    // the strip on the left half, the toolbar on the right.
+    this.panels.strip.place(-widthM / 2 + 0.16, 0.03, depthM / 2 + 0.045, -0.95);
+    this.panels.toolbar.place(widthM / 2 - TOOLBAR_W / 2 - 0.005, 0.035, depthM / 2 + 0.06, -0.85);
 
     this.panels.brief.onClick('btn-start', () => this.startLive());
-    this.panels.toolbar.onClick('btn-pause', () => this.pause());
+    this.toolbar = new Toolbar(this.panels.toolbar, () => this.pause());
+    this.panels.brief.onClick('btn-resume-run', () => this.resumeRun());
     this.panels.pause.onClick('btn-resume', () => this.resume());
     this.panels.pause.onClick('btn-about', () => this.showAbout(true));
     this.panels.pause.onClick('btn-place', () => this.placeAgain());
@@ -137,6 +168,16 @@ export class GameSystem extends createSystem({}) {
     this.kind = kind;
     this.readyForPlay = false;
     this.lapse = null;
+    this.lineId = 0;
+    this.lineCount = 0;
+    this.pendingCells = 0;
+    this.tools.setEnabled(false);
+    const stored = this.store.loadRun();
+    this.storedRun =
+      kind === 'daily' && stored && stored.dayId === dayId && stored.status === 'in_progress' && stored.pausedAtTick > 0 &&
+      stored.settings.slowerFire === this.store.settings.slowerFire
+        ? stored
+        : null;
     const runId = `${dayId}:${Date.now()}`;
     const session = new Session(this.store, dayId, kind, runId);
     this.session = session;
@@ -159,6 +200,10 @@ export class GameSystem extends createSystem({}) {
       }
       // The dial faces the player like the board: up is the far edge.
       this.panels.brief.setProps('brief-arrow', { transformRotateZ: -ready.day.wind.dirDeg });
+      this.toolbar.setUnlocked(ready.day.tools);
+      const run = this.storedRun;
+      this.panels.brief.setProps('btn-resume-run', { display: run ? 'flex' : 'none' });
+      if (run) this.panels.brief.setText('resume-label', STATUS.resume((ready.day.liveTicks - run.pausedAtTick) / TICK_HZ));
       this.readyForPlay = true;
       if (this.phase === 'landing') this.board.setRise(1);
       if (this.phase === 'brief' || this.phase === 'plan') this.enter('brief');
@@ -205,11 +250,15 @@ export class GameSystem extends createSystem({}) {
         p.strip.setText('strip-text', INSTRUCTION.plan);
         p.brief.setText('start-label', BRIEF.start);
         break;
+      case 'plan':
+        p.strip.setText('strip-text', INSTRUCTION.draw);
+        break;
       case 'live':
-        p.strip.setText('strip-text', INSTRUCTION.watch);
+        p.strip.setText('strip-text', this.lineCount > 0 ? INSTRUCTION.watch : INSTRUCTION.draw);
         break;
       case 'timelapse':
         p.strip.setText('strip-text', RESULT.replay);
+        this.board.crew.root.visible = false;
         break;
     }
   }
@@ -217,8 +266,65 @@ export class GameSystem extends createSystem({}) {
   private startLive(): void {
     if ((this.phase !== 'brief' && this.phase !== 'plan') || !this.session || !this.readyForPlay) return;
     this.board.setRise(1);
+    this.storedRun = null;
     this.session.beginLive();
     this.enter('live');
+  }
+
+  /** Resume after a reload: the stored run replays to its tick, then plays live. */
+  private resumeRun(): void {
+    const run = this.storedRun;
+    if ((this.phase !== 'brief' && this.phase !== 'plan') || !this.session || !this.readyForPlay || !run) return;
+    this.storedRun = null;
+    this.board.setRise(1);
+    const fire = this.firePoint();
+    for (const input of run.inputs) {
+      if (input.kind !== 'dig') continue;
+      this.board.lines.add(input.cells, fire);
+      this.lineId = Math.max(this.lineId, input.lineId);
+      this.lineCount++;
+    }
+    this.session.resumeFrom(run);
+    this.enter('live');
+  }
+
+  private budgetLeft(): number {
+    const day = this.session?.day;
+    const left = this.session?.frame?.budgetLeft ?? day?.crewBudgetCells ?? 0;
+    return Math.max(0, left - this.pendingCells);
+  }
+
+  /** Where the line ticks point: the fire front, or the ignition before it spreads. */
+  private firePoint(): { x: number; y: number } {
+    const front = this.session?.frame?.frontCentroid;
+    if (front && front[0] >= 0) return { x: front[0], y: front[1] };
+    const cell = this.session?.day?.ignition[0]?.cell ?? 0;
+    return { x: cell % W, y: Math.floor(cell / W) };
+  }
+
+  private dig(cells: number[]): void {
+    const session = this.session;
+    if (!session) return;
+    const lineId = ++this.lineId;
+    this.pendingCells += cells.length;
+    const fire = this.firePoint();
+    void session.sendInput({ kind: 'dig', tick: 0, lineId, cells }).then((reply) => {
+      this.pendingCells = Math.max(0, this.pendingCells - cells.length);
+      if (this.session !== session) return;
+      if (!reply.ok) {
+        if (reply.reason === 'budget') this.showNotice(STATUS.noBudget);
+        return;
+      }
+      if (reply.input.kind !== 'dig') return;
+      this.board.lines.add(reply.input.cells, fire);
+      this.lineCount++;
+      if (this.phase === 'live' && this.notice <= 0) this.panels.strip.setText('strip-text', INSTRUCTION.watch);
+    });
+  }
+
+  private showNotice(text: string): void {
+    this.notice = NOTICE_S;
+    this.panels.strip.setText('strip-text', text);
   }
 
   private pause(): void {
@@ -266,6 +372,8 @@ export class GameSystem extends createSystem({}) {
     r.setText('base-houses-label', RESULT.housesLabel);
     r.setText('you-burned', RESULT.burned(you.burnedHa));
     r.setText('base-burned', RESULT.burned(base.burnedHa));
+    r.setText('you-line', RESULT.line(this.dugCells(info)));
+    r.setText('base-line', RESULT.noLine);
     const progress = this.store.progress;
     this.store.saveProgress({
       completedFires: progress.completedFires + 1,
@@ -274,6 +382,13 @@ export class GameSystem extends createSystem({}) {
     this.enter('outcome');
     this.panels.strip.show(true);
     this.panels.strip.setText('strip-text', info.outcome.resolvedByFastForward ? RESULT.outOfTime : INSTRUCTION.contained);
+  }
+
+  private dugCells(info: OutcomeInfo | null): number {
+    if (!info) return 0;
+    let n = 0;
+    for (let i = 0; i < info.lineAt.length; i++) if (info.lineAt[i] >= 0) n++;
+    return n;
   }
 
   private startLapse(): void {
@@ -291,6 +406,17 @@ export class GameSystem extends createSystem({}) {
     for (const panel of Object.values(this.panels)) panel.poll();
     const frozen = this.paused;
     if (!frozen) this.phaseTime += dt;
+    const canDraw = (this.phase === 'plan' || this.phase === 'live') && !frozen && this.readyForPlay && this.toolbar.selected === 'dig';
+    this.tools.setEnabled(canDraw);
+    if (canDraw) this.tools.update(this.renderer.xr.getFrame(), this.renderer.xr.getReferenceSpace());
+    const day = this.session?.day;
+    if (day) this.toolbar.setBudget(this.budgetLeft(), day.crewBudgetCells, this.tools.previewCells);
+    if (this.notice > 0) {
+      this.notice -= dt;
+      if (this.notice <= 0 && (this.phase === 'live' || this.phase === 'plan')) {
+        this.panels.strip.setText('strip-text', this.phase === 'live' && this.lineCount > 0 ? INSTRUCTION.watch : INSTRUCTION.draw);
+      }
+    }
     this.player.head.getWorldPosition(this.camWorld);
     if (!this.immersive) this.world.camera.getWorldPosition(this.camWorld);
 
@@ -361,6 +487,13 @@ export class GameSystem extends createSystem({}) {
           candidates: placement.candidates,
           outcome: self.session?.outcome?.outcome ?? null,
           baseline: self.session?.baseline?.outcome ?? null,
+          budgetLeft: self.budgetLeft(),
+          lines: self.lineCount,
+          inputs: self.session?.inputs.length ?? 0,
+          drawing: self.tools.drawing,
+          lastStroke: self.tools.lastKind,
+          resumable: self.storedRun !== null,
+          dugCells: self.dugCells(self.session?.outcome ?? null),
         };
       },
     };

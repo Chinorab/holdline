@@ -1,3 +1,6 @@
+/** Crew line length: one cell is 30 m. */
+const km = (cells: number) => `${(cells * 0.03).toFixed(1)} km`;
+
 // Every player facing string. tests/logic/copy-scan.test.ts checks this module:
 // no dash or hyphen characters, no emojis, no mention of AI, instructions at most 4 words.
 
@@ -61,6 +64,8 @@ export const RESULT = {
   houses: (standing: number, total: number) => `${standing} of ${total}`,
   housesLabel: 'houses standing',
   burned: (ha: number) => `${ha} ha burned`,
+  line: (cells: number) => `${km(cells)} line dug`,
+  noLine: 'No line',
   replay: 'Replay',
   done: 'Done',
   slowerFire: 'Slower fire',
@@ -88,6 +93,8 @@ export const STATUS = {
   notSaved: 'Progress not saved',
   scanTable: 'Scan table',
   placeAgain: 'Place again',
+  noBudget: 'No crew line left',
+  resume: (secondsLeft: number) => `Resume ${Math.floor(secondsLeft / 60)}:${String(Math.floor(secondsLeft % 60)).padStart(2, '0')}`,
 } as const;
 
 export const TOOL = {
@@ -95,6 +102,8 @@ export const TOOL = {
   water: 'Water drop',
   backburn: 'Backburn',
   pause: 'Pause',
+  budget: 'Crew line',
+  km,
 } as const;
 
 export const FUEL_NAMES = ['Grass', 'Brush', 'Forest', 'Rock', 'Water', 'Road', 'House'] as const;

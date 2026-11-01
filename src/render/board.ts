@@ -16,8 +16,10 @@ import {
 import { H, N, W } from '../sim/grid.js';
 import { CellState } from '../sim/types.js';
 import type { FrameMessage, LandscapeTransfer } from '../worker/protocol.js';
+import { Crew } from './crew.js';
 import { BoardDims } from './dims.js';
 import { Flames } from './flames.js';
+import { Lines } from './lines.js';
 import { color } from './palette.js';
 import { Props, createPropMaterial } from './props.js';
 import { Smoke } from './smoke.js';
@@ -33,6 +35,10 @@ export class Board {
   readonly flames = new Flames(this.dims);
   readonly smoke = new Smoke(this.dims);
   readonly vane = new WindVane();
+  readonly lines = new Lines(this.dims, () => this.cellHeight);
+  readonly crew = new Crew(this.dims, () => this.cellHeight);
+  /** Holds the terrain mesh: the entity players draw on. */
+  readonly surface = new Group();
   readonly outline: Mesh;
   readonly terrainMaterial: ShaderMaterial;
   readonly propMaterial: ShaderMaterial;
@@ -57,7 +63,8 @@ export class Board {
     this.root.name = 'Board';
     this.terrainMaterial = createTerrainMaterial(this.textures, this.dims.plinthM, this.dims.layerM);
     this.propMaterial = createPropMaterial(this.dims.plinthM);
-    this.root.add(this.flames.mesh, this.smoke.mesh, this.vane.root);
+    this.surface.name = 'DrawSurface';
+    this.root.add(this.surface, this.lines.root, this.crew.root, this.flames.mesh, this.smoke.mesh, this.vane.root);
     this.outline = this.makeOutline();
     this.outline.visible = false;
     this.root.add(this.outline);
@@ -85,7 +92,7 @@ export class Board {
 
   setLandscape(land: LandscapeTransfer): void {
     if (this.terrain) {
-      this.root.remove(this.terrain);
+      this.surface.remove(this.terrain);
       this.terrain.geometry.dispose();
     }
     if (this.props) {
@@ -98,7 +105,7 @@ export class Board {
     this.fuel = land.fuel;
     this.terrain = new Mesh(build.geometry, this.terrainMaterial);
     this.terrain.name = 'Terrain';
-    this.root.add(this.terrain);
+    this.surface.add(this.terrain);
     this.textures.setFuel(land.fuel);
     this.props = new Props(this.propMaterial, land.fuel, land.density, land.houses, build.cellHeight, this.dims);
     this.root.add(this.props.trees, this.props.shrubs, this.props.houses);
@@ -111,6 +118,8 @@ export class Board {
     this.burningCount = 0;
     this.flames.mesh.count = 0;
     this.smoke.clear();
+    this.lines.clear();
+    this.crew.reset();
   }
 
   /** 0: flat paper; 1: full relief. The layers stack up from the bottom. */
@@ -154,6 +163,8 @@ export class Board {
     this.burningCount = n;
     this.props?.applyState((i) => this.cellState[i]);
     this.flames.set(this.burning, n, this.ages, this.fuel, this.cellHeight);
+    this.lines.applyFlags(packed);
+    this.crew.setCell(frame.crew.cell);
     this.setWind(frame.wind.speedMs, frame.wind.dirDeg);
   }
 
@@ -196,6 +207,7 @@ export class Board {
     this.terrainMaterial.uniforms.uTime.value = this.time;
     this.flames.update(this.time, camWorld);
     this.vane.update(step);
+    this.crew.update(step);
     if (step > 0) this.smoke.update(step, this.burning, this.burningCount, this.cellHeight);
   }
 }

@@ -222,18 +222,20 @@ export class Props {
       if (st === this.lastState[i]) continue;
       this.lastState[i] = st;
       const tint = st === CellState.Burning ? BURNING : st === CellState.Burned ? BURNED : UNBURNED;
+      // Burned, or cut down by the crews (a dug line turns fuel into bare ground).
+      const cut = st === CellState.Burned || st === CellState.Unburnable;
       const ti = this.treeOfCell[i];
       if (ti >= 0) {
         for (let k = ti; k < ti + this.treesInCell[i]; k++) {
           this.trees.setColorAt(k, tint);
-          this.trees.setMatrixAt(k, st === CellState.Burned ? this.scratch.multiplyMatrices(this.treeBase[k], this.stump) : this.treeBase[k]);
+          this.trees.setMatrixAt(k, cut ? this.scratch.multiplyMatrices(this.treeBase[k], this.stump) : this.treeBase[k]);
         }
         trees = true;
       }
       const si = this.shrubOfCell[i];
       if (si >= 0) {
         this.shrubs.setColorAt(si, tint);
-        this.shrubs.setMatrixAt(si, st === CellState.Burned ? this.scratch.multiplyMatrices(this.shrubBase[si], this.stump) : this.shrubBase[si]);
+        this.shrubs.setMatrixAt(si, cut ? this.scratch.multiplyMatrices(this.shrubBase[si], this.stump) : this.shrubBase[si]);
         shrubs = true;
       }
       const hi = this.houseOfCell[i];
@@ -249,7 +251,7 @@ export class Props {
 
   /** Back to the unburned look (new run or time lapse start). */
   reset(): void {
-    this.lastState.fill(0);
+    this.lastState.fill(255);
     for (let k = 0; k < this.trees.count; k++) {
       this.trees.setColorAt(k, UNBURNED);
       this.trees.setMatrixAt(k, this.treeBase[k]);

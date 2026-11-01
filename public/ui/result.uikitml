@@ -110,12 +110,14 @@
       <span id="you-houses" class="big big-you">6 of 6</span>
       <span id="you-houses-label" class="small small-you">houses standing</span>
       <span id="you-burned" class="small small-you">0 ha burned</span>
+      <span id="you-line" class="small small-you">0 km line dug</span>
     </div>
     <div class="column">
       <span id="base-head" class="head">If no one had acted</span>
       <span id="base-houses" class="big">6 of 6</span>
       <span id="base-houses-label" class="small">houses standing</span>
       <span id="base-burned" class="small">0 ha burned</span>
+      <span id="base-line" class="small">No line</span>
     </div>
   </div>
   <div class="row">

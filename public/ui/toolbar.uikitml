@@ -1,12 +1,12 @@
 <!--
   Toolbar along the board's near edge (design canvas: Toolbar on the model edge).
-  Slice a carries Pause; the tools join it in slice b.
+  Dig line, Water drop, Backburn, Pause, and the crew line budget. Locked tools show a lock;
+  the selected tool is dark. States and texts are set from src/ui/toolbar.ts.
 -->
 <style>
   .bar {
-    flex-direction: row;
-    align-items: center;
-    gap: 36px;
+    flex-direction: column;
+    gap: 20px;
     padding-top: 20px;
     padding-bottom: 20px;
     padding-left: 20px;
@@ -14,12 +14,16 @@
     border-radius: 8px;
     background-color: #f3f1ed;
   }
+  .tools {
+    flex-direction: row;
+    gap: 20px;
+  }
   .tool {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    width: 176px;
+    gap: 16px;
+    width: 200px;
     height: 200px;
     border-radius: 8px;
     background-color: #e4e2dd;
@@ -34,14 +38,67 @@
     color: #1d1c1a;
   }
   .label {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
+    color: #1d1c1a;
+  }
+  .meter {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    height: 48px;
+  }
+  .meter-label {
+    font-size: 30px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
+  .track {
+    flex-grow: 1;
+    height: 16px;
+    border-radius: 4px;
+    background-color: #cac7c2;
+  }
+  .fill {
+    width: 100%;
+    height: 16px;
+    border-radius: 4px;
+    background-color: #1d1c1a;
+  }
+  .value {
+    width: 150px;
+    font-size: 32px;
+    font-weight: 800;
+    text-align: right;
     color: #1d1c1a;
   }
 </style>
 <div class="bar">
-  <div id="btn-pause" class="tool">
-    <Pause class="icon"></Pause>
-    <span class="label">Pause</span>
+  <div class="tools">
+    <div id="btn-dig" class="tool">
+      <Shovel id="icon-dig" class="icon"></Shovel>
+      <span id="label-dig" class="label">Dig line</span>
+    </div>
+    <div id="btn-water" class="tool">
+      <Droplet id="icon-water" class="icon"></Droplet>
+      <Lock id="lock-water" class="icon"></Lock>
+      <span id="label-water" class="label">Water drop</span>
+    </div>
+    <div id="btn-backburn" class="tool">
+      <Flame id="icon-backburn" class="icon"></Flame>
+      <Lock id="lock-backburn" class="icon"></Lock>
+      <span id="label-backburn" class="label">Backburn</span>
+    </div>
+    <div id="btn-pause" class="tool">
+      <Pause class="icon"></Pause>
+      <span class="label">Pause</span>
+    </div>
+  </div>
+  <div class="meter">
+    <span id="budget-label" class="meter-label">Crew line</span>
+    <div class="track">
+      <div id="budget-fill" class="fill"></div>
+    </div>
+    <span id="budget-value" class="value">2.4 km</span>
   </div>
 </div>

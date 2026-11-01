@@ -122,8 +122,18 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   pinch, as the constitution requires.
 - Drawing on the terrain: far, from `RayInteractable` pointer events on the terrain entity;
   near (pinch point within about 10 cm above the board), from the pinch midpoint projected
-  straight down onto the heightfield. Pointer event names, capture during drag and hand joint
-  access are verified at slice b start.
+  straight down onto the heightfield.
+- Verified at slice b start (IWSDK 1.1.0-rc.2 with @pmndrs/pointer-events 6.6.32 typings):
+  objects under a `RayInteractable` entity receive `pointerdown`, `pointermove`, `pointerup`
+  and `pointercancel` with `point` (world hit), `pointerId` and `pointerPosition` (ray origin);
+  `object.setPointerCapture(pointerId)` keeps moves coming during a drag. Each hand runs a
+  MultiPointer (touch over grab over ray), so the ray pointer's origin is that hand's
+  `raySpaces` pose, which tells which hand a far stroke came from. Hand joints come from the
+  raw WebXR frame (`getJointPose` on `thumb-tip` and `index-finger-tip`), relative to the
+  reference space the player origin stands in; the emulator provides them in hand mode.
+- Near beats far: a ray stroke from a hand that is over the board is ignored and a near pinch
+  cancels a ray stroke in progress. Lines are rasterized 4 connected (an 8 neighbor fire
+  cannot pass between two diagonal cells), not 8 connected as first planned.
 - Board yaw and scale: our own two hand rim gesture (yaw only, scale clamped 45 to 60 cm,
   height kept on the table) because `TwoHandsGrabbable` rotates freely; one hand mode uses
   edge buttons. The fallback handle uses `OneHandGrabbable` or `DistanceGrabbable`.

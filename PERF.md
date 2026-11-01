@@ -27,6 +27,20 @@ Frame rate: not measurable here. The emulated session ran at about 3 fps in the 
 pane (software rendering of the emulated room plus both eyes), which says nothing about a
 Quest 3. A frame rate claim needs a headset (TESTING.md).
 
+## Slice b (2026-11-01)
+
+Same emulator setup (Quest 3 profile, `home_office`, browser pane). Read from the last XR
+frame before any still is rendered (a still renders the scene once more and resets the
+counters).
+
+| Moment | Draw calls | Triangles | Notes |
+|--------|-----------:|----------:|-------|
+| Live, 2 lines (74 cells), 3 crew pawns, hand models, smoke | 54 | 171,136 | full toolbar (4 tools and the crew line meter) |
+
+Lines add two draw calls (all committed lines share one mesh, the line being drawn has its
+own) and at most 12,288 plus 4,096 preallocated vertices; the crew is one instanced draw.
+The extra draw calls against slice a come mostly from the larger toolbar panel.
+
 Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
 MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
 measured on the deployed site in slice f.

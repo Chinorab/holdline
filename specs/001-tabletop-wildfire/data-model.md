@@ -68,7 +68,7 @@ nothing leaves `unburnable` or `burned`.
 
 | Kind | Fields | Validation |
 |------|--------|------------|
-| `dig` | `tick`, `lineId`, `cells: int[]` (ordered, 8 connected) | tool available, cells within budget left, skips water, rock and road |
+| `dig` | `tick`, `lineId`, `cells: int[]` (ordered, 4 connected) | tool available, cells within budget left, skips water, rock and road |
 | `water` | `tick`, `startCell`, `dirDeg`, `lengthCells` 24, `widthCells` 3 | tool available, `tick >= waterReadyAt`; cooldown 120 ticks (20 s) |
 | `backburn` | `tick`, `lineId`, `cell`, `side: 1 or -1` | tool available, cell on a dug line, ignites up to 12 cells on that side |
 | `pause` / `resume` | `tick` | bookkeeping only, no effect on the fire |

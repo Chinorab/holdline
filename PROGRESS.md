@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 04:20 (Paris)
+Last update: 2026-11-01 (Paris), slice b done
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,11 +8,9 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice a is done and committed on branch `001-tabletop-wildfire`. Next: slice b, T041 to T048
-in `specs/001-tabletop-wildfire/tasks.md` (dig line near and far, crews, budget, toolbar
-tools, result card against the baseline, resume after reload). Start with the slice b
-verification items in research.md (pointer events with hit points, capture during a drag,
-hand joints for near drawing).
+Slice b is done and committed on branch `001-tabletop-wildfire`. Next: slice c, T049 to T059
+in `specs/001-tabletop-wildfire/tasks.md` (water drop, inspect, backburn first cut, unlocks,
+Day 0 by doing, ghost hand).
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -23,8 +21,12 @@ hand joints for near drawing).
       auto pause, result placeholder, 10 s time lapse, self hosted input profiles,
       PERF.md, TESTING.md. Alexandridis constants confirmed via Freire and DaCamara 2019.
 
+- [x] Slice b (T041 to T048): dig line near (pinch over the board) and far (ray, gaze),
+      crews dig in order and cut the trees, budget meter, toolbar with locked tools, result
+      card with km of line, resume after reload; gate in the emulator, replay identical.
+
 ## Next
-- [ ] Slice b (T041 to T048), then c, d, e, f as in tasks.md
+- [ ] Slice c (T049 to T059), then d, e, f as in tasks.md
 - [ ] Slice e items noted during slice a: compact Glasses layout (briefing card top is
       cut in the glasses view), Scan table button, cold start check
 
@@ -42,8 +44,10 @@ hand joints for near drawing).
 - Dev server here: `HOLDLINE_HTTP=1 npx iwsdk dev up --ai-mode agent --foreground --no-open`
   (launch config `holdline-dev` in `D:\claude\.claude\launch.json`), then open
   `http://localhost:8081` in the desktop browser pane and keep the pane visible.
-- Emulator gate helper: paste `scripts/emulator/slice-a.browser.js`, then
-  `holdlineGate.placeAtDesk()`, `holdlineGate.fullLoop()`, `holdlineGate.report()`.
+- Emulator gate helpers: in the page, `await import('/scripts/emulator/slice-a.browser.js')`
+  and `slice-b.browser.js`, then `holdlineGate.placeAtDesk()`, `fullLoop()`, `sliceB()`.
+  Stills: start a local receiver that saves POST bodies to artifacts/slice-x on
+  127.0.0.1:8790, then `holdlineGate.snap(name)`.
 - Checks: `npm run typecheck`, `npm test`, `npm run build` (runs the dist check).
 
 ## Pitfalls
@@ -57,3 +61,9 @@ hand joints for near drawing).
 - IWER resets the head to (0, 1.6, 0) at session start; legacy room ids load other rooms.
 - `--no-locomotion` is rejected for `--target ar` by the create CLI.
 - iwsdk-runtime MCP only loads when Claude Code starts in this folder.
+- A captured pointer drag reports points on a plane through the first hit: march the event
+  ray over the heightfield instead (tool-system.ts).
+- Ribbons built in code face down: line materials are double sided.
+- Rendering into a render target skips the sRGB conversion unless the target texture's
+  colorSpace is SRGBColorSpace.
+- A UIKit text that grows after layout can wrap: give button labels a fixed width.

@@ -92,14 +92,14 @@ slope, smoke into the room, pause and resume, time lapse.
 the same fire with no action.
 **Independent test**: one fire day with only the dig line; replay gives identical numbers.
 
-- [ ] T041 [P] [US2] tests/sim/dig.test.ts: crews dig from the line start at a set pace, budget enforced, dug cells stop spread, burning and burned cells skipped
-- [ ] T042 [P] [US2] tests/sim/outcome.test.ts: outcome numbers equal a recount of the final state, baseline ignores inputs, fast forward at the time limit
-- [ ] T043 [US2] Tool input in src/input/tool-system.ts and src/input/dig.ts: far drawing from terrain pointer events, near drawing from the pinch point projected on the heightfield, rasterized to 8 connected cells, budget preview
-- [ ] T044 [P] [US2] Lines (planned dashed, dug ink, ticks facing the fire) in src/render/lines.ts and the crew machine in src/render/crew.ts
-- [ ] T045 [US2] Toolbar public/ui/toolbar.uikitml from the canvas (Dig line, Water drop, Backburn, Pause, budget meter) with src/ui/toolbar.ts
-- [ ] T046 [US2] Result card public/ui/result.uikitml from the canvas (You, If no one had acted, houses, hectares, replay, Done) bound in src/ui/panels.ts
-- [ ] T047 [US2] Resume after reload in src/game/session.ts: a stored run for today offers Resume and replays to its paused tick
-- [ ] T048 [US2] Gate: scripts/emulator/slice-b.mjs (far line with the right hand ray, near line with the left hand, outcome card equals the worker outcome, replay identical), screenshots, PERF.md, commit "slice b"
+- [x] T041 [P] [US2] tests/sim/dig.test.ts: crews dig from the line start at a set pace, budget enforced, dug cells stop spread, burning and burned cells skipped (cells that burn before the crew arrives are skipped and given back to the budget)
+- [x] T042 [P] [US2] tests/sim/outcome.test.ts: outcome numbers equal a recount of the final state, baseline ignores inputs, fast forward at the time limit (plus: a live run with uneven advances equals its replay)
+- [x] T043 [US2] Tool input in src/input/tool-system.ts and src/input/dig.ts: far drawing from terrain pointer events, near drawing from the pinch point projected on the heightfield, rasterized to 4 connected cells (an 8 neighbor fire cannot slip between diagonal cells), budget preview; drag rays are marched over the heightfield because the captured pointer projects onto a plane (research R7); tests/logic/dig-stroke.test.ts
+- [x] T044 [P] [US2] Lines (planned dashed, dug ink, ticks facing the fire) in src/render/lines.ts and the crew machine in src/render/crew.ts (lines and crew draw over the trees; crews cut the trees on dug cells)
+- [x] T045 [US2] Toolbar public/ui/toolbar.uikitml from the canvas (Dig line, Water drop, Backburn, Pause, budget meter) with src/ui/toolbar.ts (locked tools show a lock until slice c)
+- [x] T046 [US2] Result card public/ui/result.uikitml from the canvas (You, If no one had acted, houses, hectares, replay, Done) bound in src/ui/panels.ts (plus km of line dug)
+- [x] T047 [US2] Resume after reload in src/game/session.ts: a stored run for today offers Resume and replays to its paused tick (Resume button on the briefing card with the time left)
+- [x] T048 [US2] Gate: scripts/emulator/slice-b.mjs (far line with the right hand ray, near line with the left hand, outcome card equals the worker outcome, replay identical), screenshots, PERF.md, commit "slice b" (ran as scripts/emulator/slice-b.browser.js in the browser pane; far line by the right controller ray, see TESTING.md)
 
 **Checkpoint (MVP)**: US1 and US2 make a complete, honest game.
 

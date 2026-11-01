@@ -223,9 +223,16 @@ export class Sim {
   }
 
   private crewWork(t: number): void {
-    if (this.crewCell < 0) {
+    // Cells that caught fire (or burned) before the crew got there are skipped and given
+    // back to the budget.
+    while (this.crewCell < 0) {
       const next = this.crewQueue.shift();
       if (next === undefined) return;
+      if (this.state[next] !== CellState.Fuel) {
+        this.flags[next] &= ~Flag.Planned;
+        this.budgetUsed--;
+        continue;
+      }
       this.crewCell = next;
       this.crewProgress = 0;
     }
@@ -240,6 +247,8 @@ export class Sim {
       this.flags[c] |= Flag.Line;
       this.dugCells++;
       this.events.push({ type: 'dug', tick: t, cell: c });
+    } else {
+      this.budgetUsed--;
     }
   }
 

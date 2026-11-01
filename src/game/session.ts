@@ -3,7 +3,7 @@
 
 import { TICK_HZ } from '../sim/day.js';
 import type { DayConfig, Input, RunKind } from '../sim/types.js';
-import type { ProgressStore } from '../store/progress.js';
+import type { ProgressStore, StoredRun } from '../store/progress.js';
 import { SimClient, type BaselineInfo, type InputReply, type OutcomeInfo, type ReadyInfo } from '../worker/client.js';
 import type { FrameMessage } from '../worker/protocol.js';
 
@@ -36,7 +36,7 @@ export class Session {
     private readonly store: ProgressStore,
     readonly dayId: string,
     readonly kind: RunKind,
-    readonly runId: string,
+    public runId: string,
   ) {
     this.client.onFrame = (frame) => {
       this.frame = frame;
@@ -67,6 +67,22 @@ export class Session {
   /** Development only: jump the clock to the time limit. */
   skipToEnd(): void {
     if (this.day) this.liveSeconds = this.day.liveTicks / TICK_HZ;
+  }
+
+  /**
+   * Continue a run saved before a reload: replay its inputs to the tick it stopped at, then
+   * run live from there. Call after start().
+   */
+  resumeFrom(run: StoredRun): void {
+    this.runId = run.runId;
+    this.inputs.length = 0;
+    this.inputs.push(...run.inputs);
+    this.tick = run.pausedAtTick;
+    this.liveSeconds = run.pausedAtTick / TICK_HZ;
+    this.client.replay(run.inputs, run.pausedAtTick);
+    this.running = true;
+    this.paused = false;
+    this.persist();
   }
 
   beginLive(): void {
