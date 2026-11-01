@@ -43,7 +43,11 @@ The extra draw calls against slice a come mostly from the larger toolbar panel.
 
 ## Slice c (2026-11-01)
 
-Not measured yet: the slice c gate ended before a stats read. New draws, only while shown:
+| Moment | Draw calls | Triangles | Notes |
+|--------|-----------:|----------:|-------|
+| Live, Meta VR Glasses profile, wet strip, inspect tooltip shown, 39 cells burning | 54 | 169,540 | read from the last XR frame |
+
+New draws, only while shown:
 water preview 1, aircraft 3 (body, outline, shadow) plus the water veil 1, hold ring 1,
 ghost hand 2 fills and 14 outline lines, inspect tooltip (one small panel).
 

@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 (Paris), slice c built, gate partly run
+Last update: 2026-11-01 (Paris), slice c done
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,10 +8,8 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice c is built and committed. Two gate items remain (T059): the water drop by gaze on the
-Meta VR Glasses profile (set `dev.emulator.device` to `metaVRGlasses` in iwsdk.config.json,
-gaze `look_at` with the headset, pinch with a hand) and a render stats read for PERF.md.
-Then slice d, T060 onward.
+Slice c is done, gate included. Next: slice d, T060 onward in
+`specs/001-tabletop-wildfire/tasks.md`.
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -32,7 +30,7 @@ Then slice d, T060 onward.
       Day 0 button on the pause card. Gate: Day 0 contained at 118 s of game time.
 
 ## Next
-- [ ] Finish the slice c gate (T059), then slices d, e, f as in tasks.md
+- [ ] Slices d, e, f as in tasks.md
 - [ ] Slice e items noted during slice a: compact Glasses layout (briefing card top is
       cut in the glasses view), Scan table button, cold start check
 
@@ -78,3 +76,7 @@ Then slice d, T060 onward.
   (status fields), never on wall clock; report game seconds (`playSeconds`).
 - The browser pane needs the session window open: if the window is closed, the world never
   finishes loading.
+- Glasses profile in the emulator: `set_input_mode` hand first, gaze is the `gaze` device,
+  pinch with `select` on `hand-left` (duration 1.2 s at the pane's frame rate).
+- Changing iwsdk.config.json restarts the dev server; a server started by an older session
+  stops instead, so start `holdline-dev` again.

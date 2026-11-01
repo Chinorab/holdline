@@ -96,8 +96,13 @@ Found and fixed during the gate: on a board without shrubs (Day 0) the instanced
 had no color attribute and its shader failed to compile; Day 0's auto start counted from
 entering the phase instead of from the moment the beat was ready.
 
-Not run yet: the water drop by gaze on the Meta VR Glasses profile. The session window was
-closed during the gate, and a hidden browser pane gets no frames.
+Water drop by gaze, run afterwards on the Meta VR Glasses profile (home_office, progress
+seeded with one completed fire so the water drop is unlocked): the board was placed by gaze
+on it plus a left hand pinch; in the plan phase the water drop intro selected the tool; gaze
+on a cell plus a held left hand pinch showed the strip preview and called the aircraft; the
+drop was accepted (cooldown 20 s) and the wet strip shows. Stroke kind `far` (the gaze
+pointer). Zero errors. The emulator needs `set_input_mode` hand before a hand pinch counts,
+and the gaze is its own device (`look_at` with device `gaze`).
 
 ## Needs a headset
 

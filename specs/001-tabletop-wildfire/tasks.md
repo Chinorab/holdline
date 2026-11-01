@@ -121,7 +121,7 @@ then each tool once against the baseline.
 - [x] T056 [US3] Day 0 in src/game/day0.ts with the day0 config in src/sim/day.ts: fixed layout, beats wind, slope, fuel and breaks, guided first line, tutorial crew speed (board and beats in src/sim/day0.ts, one day id per beat; tests/sim/day0.test.ts pins each beat and the line beat timing)
 - [x] T057 [P] [US3] Paper cutout ghost hand in src/render/ghost-hand.ts (open and pinch frames, follows a path) driven by src/ui/instructions.ts (driven from src/game/day0.ts and the unlock intro in phases.ts; no separate instructions module)
 - [x] T058 [US3] First visit flow in src/game/phases.ts: Day 0 after placement, skipped for returning players, Replay Day 0 in settings, unlock intro beats (Day 0 button on the pause card until the settings card exists in slice e)
-- [ ] T059 [US3] Gate: scripts/emulator/slice-c.mjs (fresh storage, Day 0 timed from xr enter to Contained, water by gaze on the Glasses profile and by hand ray on Quest 3, backburn hold), screenshots, PERF.md, commit "slice c" (partly done: Day 0, hand ray water, backburn hold and inspect ran as scripts/emulator/slice-c.browser.js; still to run: water by gaze on the Glasses profile, and the stats read for PERF.md)
+- [x] T059 [US3] Gate: scripts/emulator/slice-c.mjs (fresh storage, Day 0 timed from xr enter to Contained, water by gaze on the Glasses profile and by hand ray on Quest 3, backburn hold), screenshots, PERF.md, commit "slice c" (ran as scripts/emulator/slice-c.browser.js plus a Glasses profile pass for the gaze water drop; see TESTING.md)
 
 ---
 
