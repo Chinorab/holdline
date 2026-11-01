@@ -7,7 +7,7 @@ What ran, where, and what still needs a headset. Updated at each slice gate.
 | Suite | Command | Slice a result |
 |-------|---------|----------------|
 | Typecheck (app and tests) | `npm run typecheck` | clean |
-| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests pass |
+| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests; slice d: 20 files, 189 tests pass |
 | Production build and dist check | `npm run build` | builds; `scripts/check-dist.mjs` ok (no agent notes, no source maps, every library URL explained) |
 
 The fire model tests cover: same day and inputs give the same state hash at every tick;
@@ -104,11 +104,36 @@ drop was accepted (cooldown 20 s) and the wet strip shows. Stroke kind `far` (th
 pointer). Zero errors. The emulator needs `set_input_mode` hand before a hand pinch counts,
 and the gaze is its own device (`look_at` with device `gaze`).
 
+## Emulator (slice d)
+
+Quest 3 profile, home_office. Helper: `scripts/emulator/slice-d.browser.js`. Dates were set
+with `localStorage holdline.dev.today` (read by development builds only, src/game/clock.ts)
+and progress seeded so Day 0 is skipped and every tool is unlocked.
+
+| Scenario | How | Result |
+|----------|-----|--------|
+| Day 3 daily fire | date 2026-11-03, enter, place, start, skip to the end | journal: Day 3 played, Days 2 and 1 missed, streak 1 day, best 6 of 6 |
+| Next date | date 2026-11-04, reload, play | streak 2 days, two burn scars on the shelf |
+| Practice a missed day | Day 2 tile, play, skip to the end | brief "Day 2 practice", Day 2 tile shows its scar, streak stays 2 |
+| Daily fire counts once | reload on 2026-11-04 after its daily | the day opens as practice |
+| Sound | while live | context running after the Enter press; crackle 0.6, wind 0.14 to 0.36 by wind speed; digging 0.5 while crews dig; aircraft 0.9 and water 0.8 on a drop |
+| Captions | while live | "Crackling, Wind"; "Digging" while crews dig; "Aircraft" and "Water" on a drop; at most three at once |
+| Room haze | while live, then contained | rises with burning cells (0.017 at 45 cells), back to 0 after the end |
+| Ceiling | home_office | ceiling plane found at 2.7 m; plume puffs stop 4 cm under it (9 of 63 puffs at the cap) |
+| Console | each run | zero errors |
+
+Found and fixed: the digging caption and sound flickered (the crew is idle for one tick
+between cells; digging now holds for a second); the scar miniatures drew unburned land in
+the tile color; plume puffs faded before reaching a ceiling 2 m above the table.
+
 ## Needs a headset
 
 - Frame rate at 72 Hz and the feel of pinch timing.
 - Real plane and mesh detection on a real table, including tables that Space Setup missed.
 - Persistent anchors across browser restarts (the emulator restores them within its storage).
 - Panel button clicks by hand ray, gaze and poke at full frame rate.
+- Sound levels and spatial placement on real speakers; the emulator only proves the sources
+  play at the intended volumes.
+- Haze strength over real passthrough (alpha is capped at 0.12).
 - Drawing feel: pinch thresholds (1.5 cm close, 3 cm open) and the 10 cm near zone with real
   hand tracking; the emulator's pinch is a pose switch.

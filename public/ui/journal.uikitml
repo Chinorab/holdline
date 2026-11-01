@@ -1,0 +1,139 @@
+<!--
+  Journal shelf beside the board: the streak, the personal best, and a tile per day for
+  today and the seven days before it. A tile shows that day's burn scar; a past day can be
+  played again as practice. Texts and scars set from src/ui/journal-view.ts.
+-->
+<style>
+  .card {
+    flex-direction: column;
+    gap: 22px;
+    width: 800px;
+    height: 720px;
+    padding-top: 36px;
+    padding-bottom: 36px;
+    padding-left: 36px;
+    padding-right: 36px;
+    border-radius: 8px;
+    background-color: #f3f1ed;
+  }
+  .title {
+    font-size: 44px;
+    font-weight: 800;
+    color: #1d1c1a;
+  }
+  .stats {
+    flex-direction: row;
+    gap: 20px;
+  }
+  .stat {
+    flex-direction: column;
+    gap: 6px;
+    flex-grow: 1;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 22px;
+    padding-right: 22px;
+    border-radius: 8px;
+    background-color: #e4e2dd;
+  }
+  .stat-label {
+    font-size: 30px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
+  .stat-value {
+    font-size: 48px;
+    font-weight: 800;
+    color: #1d1c1a;
+  }
+  .stat-note {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1d1c1a;
+  }
+  .tiles {
+    flex-direction: row;
+    gap: 16px;
+  }
+  .tile {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 170px;
+    height: 170px;
+    padding-top: 10px;
+    border-radius: 8px;
+    background-color: #e4e2dd;
+    cursor: pointer;
+  }
+  .tile:hover {
+    background-color: #cac7c2;
+  }
+  .scar {
+    width: 150px;
+    height: 94px;
+    border-radius: 4px;
+  }
+  .tile-label {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d1c1a;
+  }
+  .note {
+    display: none;
+    font-size: 28px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
+</style>
+<div class="card">
+  <span id="journal-title" class="title">Journal</span>
+  <div class="stats">
+    <div class="stat">
+      <span id="streak-label" class="stat-label">Streak</span>
+      <span id="streak-value" class="stat-value">0 days</span>
+    </div>
+    <div class="stat">
+      <span id="best-label" class="stat-label">Best</span>
+      <span id="best-value" class="stat-value">None yet</span>
+      <span id="best-note" class="stat-note">Day 1</span>
+    </div>
+  </div>
+    <div class="tiles">
+      <div id="tile-0" class="tile">
+        <img id="tile-0-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-0-label" class="tile-label">Day 1</span>
+      </div>
+      <div id="tile-1" class="tile">
+        <img id="tile-1-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-1-label" class="tile-label">Day 2</span>
+      </div>
+      <div id="tile-2" class="tile">
+        <img id="tile-2-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-2-label" class="tile-label">Day 3</span>
+      </div>
+      <div id="tile-3" class="tile">
+        <img id="tile-3-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-3-label" class="tile-label">Day 4</span>
+      </div>
+    </div>
+    <div class="tiles">
+      <div id="tile-4" class="tile">
+        <img id="tile-4-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-4-label" class="tile-label">Day 5</span>
+      </div>
+      <div id="tile-5" class="tile">
+        <img id="tile-5-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-5-label" class="tile-label">Day 6</span>
+      </div>
+      <div id="tile-6" class="tile">
+        <img id="tile-6-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-6-label" class="tile-label">Day 7</span>
+      </div>
+      <div id="tile-7" class="tile">
+        <img id="tile-7-img" class="scar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP89v3XfwAJ9QPxkYVnjQAAAABJRU5ErkJggg==" />
+        <span id="tile-7-label" class="tile-label">Day 8</span>
+      </div>
+    </div>
+  <span id="journal-note" class="note">Progress not saved</span>
+</div>

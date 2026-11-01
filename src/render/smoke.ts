@@ -1,5 +1,6 @@
 // Smoke: up to 200 soft billboards rising from burning cells and drifting with the game
-// wind past the board edge into the room, fading out within about 1.5 m.
+// wind past the board edge into the room, fading out within about 1.5 m. One puff in five
+// joins a plume that rises into the room; under a detected ceiling it stops and spreads.
 
 import {
   DynamicDrawUsage,
@@ -57,7 +58,11 @@ interface Puff {
   size0: number;
   size1: number;
   rise: number;
+  plume: boolean;
 }
+
+/** Plume puffs fade above this height over the board when no ceiling is known (m). */
+const PLUME_TOP_M = 1.4;
 
 export class Smoke {
   readonly mesh: InstancedMesh;
@@ -71,6 +76,9 @@ export class Smoke {
   /** Wind on the board, local x and z, in board meters per second of drift. */
   private windX = 0;
   private windZ = 0;
+  /** Ceiling height in board space, or Infinity when none was detected. */
+  ceilingY = Infinity;
+  private spawned = 0;
 
   constructor(private readonly dims: BoardDims) {
     const material = new ShaderMaterial({
@@ -116,6 +124,7 @@ export class Smoke {
         const c = sources[Math.floor(Math.random() * count)];
         const x = c % W;
         const y = (c - x) / W;
+        const plume = this.spawned++ % 5 === 0;
         this.puffs.push({
           x: this.dims.xOf(x) + (Math.random() - 0.5) * 0.004,
           y: cellHeight[c] + 0.006,
@@ -124,8 +133,11 @@ export class Smoke {
           life: 6 + Math.random() * 3,
           size0: 0.006 + Math.random() * 0.004,
           size1: 0.05 + Math.random() * 0.03,
-          rise: 0.012 + Math.random() * 0.01,
+          rise: plume ? 0.14 + Math.random() * 0.04 : 0.012 + Math.random() * 0.01,
+          plume,
         });
+        // A plume reaches a ceiling about 2 m above the table in some 12 s, then spreads.
+        if (plume) this.puffs[this.puffs.length - 1].life = 18 + Math.random() * 4;
       }
       if (this.spawnDebt > 1) this.spawnDebt = 1;
     }
@@ -139,22 +151,34 @@ export class Smoke {
         continue;
       }
       const lift = Math.min(1, p.age / 2);
-      p.x += this.windX * dt * lift;
-      p.z += this.windZ * dt * lift;
-      p.y += p.rise * dt;
+      // Under the ceiling a plume stops rising and spreads with the wind, faster.
+      const capped = p.y >= this.ceilingY - 0.04;
+      const spread = capped ? 2.5 : 1;
+      p.x += this.windX * dt * lift * spread;
+      p.z += this.windZ * dt * lift * spread;
+      if (capped) {
+        p.y = this.ceilingY - 0.04;
+        p.size1 = Math.min(0.3, p.size1 + dt * 0.03);
+      } else p.y += p.rise * dt;
     }
     for (const p of this.puffs) {
       const u = p.age / p.life;
       const size = p.size0 + (p.size1 - p.size0) * Math.sqrt(u);
       const fadeIn = Math.min(1, p.age / 0.6);
-      const fadeOut = u > 0.6 ? 1 - (u - 0.6) / 0.4 : 1;
-      const dist = Math.hypot(p.x, p.y, p.z);
+      const fadeFrom = p.plume ? 0.8 : 0.6;
+      const fadeOut = u > fadeFrom ? 1 - (u - fadeFrom) / (1 - fadeFrom) : 1;
+      // Fade with distance from the board: sideways for every puff, upward for low puffs,
+      // and for plumes near the top of the room.
+      const side = Math.hypot(p.x, p.z);
+      const dist = p.plume ? side : Math.hypot(p.x, p.y, p.z);
       const roomFade = dist > 1.0 ? Math.max(0, 1 - (dist - 1.0) / 0.5) : 1;
+      const top = Math.min(this.ceilingY, PLUME_TOP_M);
+      const topFade = p.plume && this.ceilingY === Infinity && p.y > top - 0.3 ? Math.max(0, (top - p.y) / 0.3) : 1;
       this.t.set(p.x, p.y, p.z);
       this.s.set(size, size, size);
       this.m.compose(this.t, this.q, this.s);
       this.mesh.setMatrixAt(n, this.m);
-      this.alpha.setX(n, 0.38 * fadeIn * fadeOut * roomFade);
+      this.alpha.setX(n, (p.plume ? 0.26 : 0.38) * fadeIn * fadeOut * roomFade * topFade);
       n++;
     }
     this.mesh.count = n;

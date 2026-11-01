@@ -54,6 +54,10 @@ World.create(
         rt.texture.colorSpace = SRGBColorSpace;
         const xrEnabled = renderer.xr.enabled;
         const background = world.scene.background;
+        // The haze surrounds the player's head; a still from elsewhere would see its shell.
+        const haze = world.scene.getObjectByName('RoomHaze');
+        const hazeVisible = haze?.visible ?? false;
+        if (haze) haze.visible = false;
         renderer.xr.enabled = false;
         world.scene.background = new Color('#d8d4cd');
         renderer.setRenderTarget(rt);
@@ -63,6 +67,7 @@ World.create(
         renderer.setRenderTarget(null);
         renderer.xr.enabled = xrEnabled;
         world.scene.background = background;
+        if (haze) haze.visible = hazeVisible;
         rt.dispose();
         const canvas = document.createElement('canvas');
         canvas.width = width;

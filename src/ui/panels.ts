@@ -104,11 +104,12 @@ export class Panel {
     }
   }
 
-  place(x: number, y: number, z: number, tiltRad: number): void {
+  /** Position on the board, tilted back by `tiltRad`, turned by `yawRad` (toward +x). */
+  place(x: number, y: number, z: number, tiltRad: number, yawRad = 0): void {
     const object = this.entity.object3D;
     if (!object) return;
     object.position.set(x, y, z);
-    object.rotation.set(tiltRad, 0, 0);
+    object.rotation.set(tiltRad, yawRad, 0, 'YXZ');
   }
 }
 

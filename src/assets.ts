@@ -20,4 +20,6 @@ export default defineAssets({
   'about-panel': uikitml('about.uikitml', 'About'),
   'result-panel': uikitml('result.uikitml', 'Result'),
   'inspect-panel': uikitml('inspect.uikitml', 'Inspect'),
+  'journal-panel': uikitml('journal.uikitml', 'Journal'),
+  'captions-panel': uikitml('captions.uikitml', 'Captions'),
 });

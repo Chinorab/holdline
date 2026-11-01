@@ -13,22 +13,28 @@ import {
   type Entity,
 } from '@iwsdk/core';
 import { ABOUT, BRIEF, INSTRUCTION, PAUSE, RESULT, STATUS } from '../copy.js';
+import { FireAudio } from '../audio/audio-system.js';
 import { BackburnTool } from '../input/backburn.js';
 import { DigTool } from '../input/dig-tool.js';
 import { Inspect } from '../input/inspect.js';
 import { ToolInput, type StrokeTool } from '../input/tool-system.js';
 import { WaterTool } from '../input/water.js';
 import { Board } from '../render/board.js';
-import { TICK_HZ, localDayId, windWord } from '../sim/day.js';
+import { Haze } from '../render/haze.js';
+import { TICK_HZ, dayNumber, windWord } from '../sim/day.js';
 import { lineCells, WATER_LENGTH_CELLS, WATER_WIDTH_CELLS } from '../sim/inputs.js';
 import { W } from '../sim/grid.js';
 import type { BackburnSide, Input, OutcomeSide, RunKind, Tool } from '../sim/types.js';
+import { JournalStore, personalBest, shelfSlots, streak } from '../store/journal.js';
 import { ProgressStore, type StoredRun } from '../store/progress.js';
 import { SafeStore } from '../store/storage.js';
 import { Panel, uiUrl } from '../ui/panels.js';
+import { Captions, type CaptionKey } from '../ui/captions.js';
+import { JournalView } from '../ui/journal-view.js';
 import { Toolbar } from '../ui/toolbar.js';
 import type { OutcomeInfo } from '../worker/client.js';
 import { placement } from '../xr/placement-system.js';
+import { todayId } from './clock.js';
 import { DAY0_END_S, DAY0_SCRIPT } from './day0.js';
 import { Session } from './session.js';
 import { BoardHandle, BoardHitProxy, BoardRoot } from './tags.js';
@@ -80,6 +86,15 @@ export interface GameStatus {
   ghost: boolean;
   /** Seconds of game time since entering mixed reality (frames capped like the fire clock). */
   playSeconds: number;
+  kind: RunKind;
+  audio: string;
+  levels: Record<string, number>;
+  caption: string;
+  haze: number;
+  ceiling: number | null;
+  today: string;
+  streak: number;
+  journal: string[];
 }
 
 export class GameSystem extends createSystem({}) {
@@ -95,8 +110,19 @@ export class GameSystem extends createSystem({}) {
   private dayNumber = 1;
   private kind: RunKind = 'daily';
   private lapse: OutcomeInfo | null = null;
-  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result' | 'inspect', Panel>;
+  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result' | 'inspect' | 'journal' | 'captions', Panel>;
+  private audio!: FireAudio;
+  private captions!: Captions;
+  private haze!: Haze;
+  private wasFlying = false;
+  /** The crew is idle for one tick between cells: digging holds for a second. */
+  private digHold = 0;
+  private captionText = '';
+  private readonly ongoing = new Set<CaptionKey>();
+  private journal!: JournalStore;
+  private journalView!: JournalView;
   private readonly camWorld = new Vector3();
+  private readonly camWorld2 = new Vector3();
   private immersive = false;
   private toolbar!: Toolbar;
   private tools!: ToolInput;
@@ -121,7 +147,9 @@ export class GameSystem extends createSystem({}) {
   private day0Wait = 0;
 
   init(): void {
-    this.store = new ProgressStore(new SafeStore());
+    const safe = new SafeStore();
+    this.store = new ProgressStore(safe);
+    this.journal = new JournalStore(safe);
     this.board = new Board();
     this.board.root.position.copy(PREVIEW_POSITION);
     this.boardEntity = this.world.createTransformEntity(this.board.root);
@@ -145,6 +173,7 @@ export class GameSystem extends createSystem({}) {
 
     this.createPanels();
     this.createTools();
+    this.createRoom();
     placement.footprint = { widthM: dims.widthM, depthM: dims.depthM };
     placement.onHandle = (h) => this.store.saveProgress({ anchorHandle: h });
 
@@ -152,7 +181,7 @@ export class GameSystem extends createSystem({}) {
       this.visibilityState.subscribe((state) => this.onVisibility(state)),
     );
     this.exposeStatus();
-    this.startDay(localDayId(new Date()), 'daily');
+    this.startDay(todayId(), 'daily');
   }
 
   private createPanels(): void {
@@ -167,6 +196,8 @@ export class GameSystem extends createSystem({}) {
       about: make('AboutPanel', 'about.uikitml', 0.32, 0.198),
       result: make('ResultPanel', 'result.uikitml', 0.4, 0.25),
       inspect: make('InspectPanel', 'inspect.uikitml', 0.088, 0.022, false),
+      journal: make('JournalPanel', 'journal.uikitml', 0.2, 0.18),
+      captions: make('Captions', 'captions.uikitml', 0.16, 0.022, false),
     };
     const { widthM, depthM } = this.board.dims;
     const stand = (p: Panel) => p.place(0, 0.1 + p.heightM / 2, -depthM / 2 - 0.03, -0.2);
@@ -178,6 +209,8 @@ export class GameSystem extends createSystem({}) {
     // the strip on the left half, the toolbar on the right.
     this.panels.strip.place(-widthM / 2 + 0.16, 0.03, depthM / 2 + 0.045, -0.95);
     this.panels.toolbar.place(widthM / 2 - TOOLBAR_W / 2 - 0.005, 0.035, depthM / 2 + 0.06, -0.85);
+    // Captions in front of the strip, low and nearly flat: never over the board.
+    this.panels.captions.place(-widthM / 2 + 0.16, 0.012, depthM / 2 + 0.085, -1.15);
 
     this.panels.brief.onClick('btn-start', () => this.startLive());
     this.toolbar = new Toolbar(this.panels.toolbar, () => this.pause());
@@ -189,6 +222,10 @@ export class GameSystem extends createSystem({}) {
     this.panels.about.onClick('btn-close', () => this.showAbout(false));
     this.panels.result.onClick('btn-replay', () => this.startLapse());
     this.panels.result.onClick('btn-done', () => this.playAgain());
+    // The journal stands left of the board, turned toward the player.
+    this.panels.journal.place(-widthM / 2 - 0.13, 0.1 + 0.09, -0.02, -0.15, 0.45);
+    this.journalView = new JournalView(this.panels.journal);
+    this.journalView.onPick = (dayId) => this.practiceDay(dayId);
     this.panels.about.setText('about-model', ABOUT.model);
     this.panels.about.setText('about-safety', ABOUT.safety);
   }
@@ -230,6 +267,21 @@ export class GameSystem extends createSystem({}) {
     this.toolbar.onSelect = (tool) => this.tools.setTool(this.strokeTool(tool));
   }
 
+  /** Sound, captions and haze: the parts of the fire that reach the room. */
+  private createRoom(): void {
+    this.audio = new FireAudio(this.player.head, this.board.aircraft.plane, this.board.aircraft.veil);
+    this.board.root.add(this.audio.crackleAnchor, this.audio.digAnchor);
+    this.audio.setEnabled(this.store.settings.sound);
+    // Browsers start audio only from a gesture: the first press anywhere (Enter mixed reality).
+    const unlock = () => this.audio.unlock();
+    window.addEventListener('pointerdown', unlock);
+    this.cleanupFuncs.push(() => window.removeEventListener('pointerdown', unlock));
+    this.captions = new Captions(this.panels.captions);
+    this.captions.enabled = this.store.settings.captions;
+    this.haze = new Haze();
+    this.player.head.add(this.haze.mesh);
+  }
+
   private strokeTool(tool: Tool | null): StrokeTool | null {
     if (tool === 'dig') return this.digTool;
     if (tool === 'water') return this.waterTool;
@@ -257,11 +309,14 @@ export class GameSystem extends createSystem({}) {
       // A Day 0 beat that ran out is fast forwarded in the worker: not worth showing.
       if (this.phase === 'timelapse' || (kind === 'tutorial' && session.resolving)) return;
       this.board.applyFrame(frame);
+      for (const e of frame.events) if (e.type === 'windShiftAnnounce') this.captions.cue('windShift');
     };
     return session;
   }
 
-  private startDay(dayId: string, kind: RunKind): void {
+  private startDay(dayId: string, requested: RunKind): void {
+    // A date's daily fire counts once; playing it again is practice.
+    const kind: RunKind = requested === 'daily' && this.journal.hasDaily(dayId) ? 'practice' : requested;
     const stored = this.store.loadRun();
     const tools = toolsFor(this.store.progress.completedFires);
     const session = this.openSession(dayId, kind, tools);
@@ -276,7 +331,7 @@ export class GameSystem extends createSystem({}) {
       this.dayNumber = ready.day.dayNumber;
       this.showLandscape(ready, dayId);
       const word = windWord(ready.day.wind.speedMs);
-      this.panels.brief.setText('brief-day', BRIEF.day(ready.day.dayNumber));
+      this.panels.brief.setText('brief-day', kind === 'practice' ? BRIEF.practice(ready.day.dayNumber) : BRIEF.day(ready.day.dayNumber));
       this.panels.brief.setText('brief-goal', BRIEF.goal(ready.landscape.houses.length));
       this.panels.brief.setText('brief-wind', BRIEF.windWords[word]);
       for (let k = 1; k <= 4; k++) {
@@ -378,7 +433,7 @@ export class GameSystem extends createSystem({}) {
     // Day 0 counts as a completed fire (it unlocks the water drop for the next one).
     this.store.saveProgress({ day0Done: true, completedFires: progress.completedFires + 1 });
     this.day0Index = -1;
-    this.startDay(localDayId(new Date()), 'daily');
+    this.startDay(todayId(), 'daily');
     this.enter('brief');
   }
 
@@ -407,7 +462,7 @@ export class GameSystem extends createSystem({}) {
       this.board.root.quaternion.identity();
       if (this.day0Active) {
         this.day0Index = -1;
-        this.startDay(localDayId(new Date()), 'daily');
+        this.startDay(todayId(), 'daily');
       }
       this.enter('landing');
     }
@@ -425,6 +480,8 @@ export class GameSystem extends createSystem({}) {
     const p = this.panels;
     p.brief.show(phase === 'brief' || phase === 'plan');
     p.result.show(phase === 'outcome');
+    p.journal.show(phase === 'outcome' || phase === 'brief');
+    if (phase === 'outcome' || phase === 'brief') this.refreshJournal();
     const day0Line = phase === 'day0' && DAY0_SCRIPT[this.day0Index]?.beat === 'line';
     p.toolbar.show(phase === 'live' || phase === 'brief' || phase === 'plan' || phase === 'timelapse' || day0Line);
     p.pause.show(false);
@@ -564,6 +621,8 @@ export class GameSystem extends createSystem({}) {
     this.board.aircraft.fly(startCell, dirDeg, () => {
       if (this.session !== session || !this.canActOn()) return;
       this.send({ kind: 'water', tick: 0, startCell, dirDeg, lengthCells: WATER_LENGTH_CELLS, widthCells: WATER_WIDTH_CELLS }, () => {});
+      this.audio.water();
+      this.captions.cue('water');
     });
   }
 
@@ -587,6 +646,7 @@ export class GameSystem extends createSystem({}) {
     if (this.phase === 'landing' || this.phase === 'placing' || this.phase === 'outcome') return;
     this.paused = true;
     this.session?.pause();
+    this.audio.setPaused(true);
     this.panels.pause.show(true);
     this.panels.pause.setText('day0-label', PAUSE.day0);
     this.panels.brief.show(false);
@@ -597,6 +657,7 @@ export class GameSystem extends createSystem({}) {
     if (!this.paused) return;
     this.paused = false;
     this.session?.resume();
+    this.audio.setPaused(false);
     this.panels.pause.show(false);
     this.panels.about.show(false);
     this.panels.brief.show(this.phase === 'brief' || this.phase === 'plan');
@@ -635,6 +696,7 @@ export class GameSystem extends createSystem({}) {
       completedFires: progress.completedFires + 1,
       firstDay: progress.firstDay ?? this.dayId,
     });
+    this.journal.record(this.dayId, this.kind === 'daily' ? 'daily' : 'practice', you, info.outcome.scarBits, Date.now());
     this.enter('outcome');
     this.panels.strip.show(true);
     this.say(info.outcome.resolvedByFastForward ? RESULT.outOfTime : INSTRUCTION.contained);
@@ -645,6 +707,19 @@ export class GameSystem extends createSystem({}) {
     let n = 0;
     for (let i = 0; i < info.lineAt.length; i++) if (info.lineAt[i] >= 0) n++;
     return n;
+  }
+
+  private refreshJournal(): void {
+    const today = todayId();
+    const best = personalBest(this.journal.days);
+    this.journalView.render(shelfSlots(this.journal.days, today), streak(this.journal.days, today), best, best ? dayNumber(best.dayId) : 0, this.store.notSaved);
+  }
+
+  /** A past day from the journal, played as practice. */
+  private practiceDay(dayId: string): void {
+    if (this.phase !== 'outcome' && this.phase !== 'brief') return;
+    this.startDay(dayId, 'practice');
+    this.enter('brief');
   }
 
   private startLapse(): void {
@@ -734,7 +809,47 @@ export class GameSystem extends createSystem({}) {
         break;
       }
     }
+    this.updateRoom(frozen ? 0 : dt);
     this.board.update(dt, this.camWorld, frozen);
+  }
+
+  private updateRoom(dt: number): void {
+    const frame = this.session?.frame;
+    const live = !this.paused && (this.phase === 'live' || (this.phase === 'day0' && this.day0Stage === 'live'));
+    const burning = this.board.burningNow;
+    const d = this.board.dims;
+    let front: { x: number; y: number; z: number } | null = null;
+    if (frame && frame.frontCentroid[0] >= 0) {
+      const [fx, fy] = frame.frontCentroid;
+      const cell = Math.round(fy) * W + Math.round(fx);
+      front = { x: d.xOf(fx), y: this.board.cellHeight[cell] ?? 0, z: d.zOf(fy) };
+    }
+    if (frame && frame.crew.cell >= 0) this.digHold = 1;
+    else this.digHold = Math.max(0, this.digHold - dt);
+    const digging = this.digHold > 0;
+    if (frame && frame.crew.cell >= 0) {
+      const c = frame.crew.cell;
+      this.audio.digAnchor.position.set(d.xOf(c % W), this.board.cellHeight[c], d.zOf(Math.floor(c / W)));
+    }
+    const windMs = frame?.wind.speedMs ?? 0;
+    this.audio.update({ live, burning, front, windMs, digging }, dt);
+    const flying = this.board.aircraft.busy;
+    if (flying && !this.wasFlying) this.audio.aircraft();
+    this.wasFlying = flying;
+
+    this.ongoing.clear();
+    if (live && burning > 0) this.ongoing.add('crackling');
+    if (live && windMs >= 3.5) this.ongoing.add('wind');
+    if (live && digging) this.ongoing.add('digging');
+    if (flying) this.ongoing.add('aircraft');
+    this.captionText = this.captions.update(dt, this.ongoing, this.immersive && this.phase !== 'landing');
+    this.haze.update(dt, burning, this.immersive && live);
+    this.board.smoke.ceilingY = placement.ceilingY === null ? Infinity : placement.ceilingY - this.boardWorldY();
+  }
+
+  private boardWorldY(): number {
+    this.board.root.getWorldPosition(this.camWorld2);
+    return this.camWorld2.y;
   }
 
   /** What the strip goes back to after a notice. */
@@ -775,6 +890,15 @@ export class GameSystem extends createSystem({}) {
           lastStroke: self.tools.lastKind,
           resumable: self.storedRun !== null,
           dugCells: self.dugCells(self.session?.outcome ?? null),
+          kind: self.kind,
+          audio: self.audio.state,
+          levels: self.audio.levels(),
+          caption: self.captionText,
+          haze: Math.round(self.haze.level * 1000) / 1000,
+          ceiling: placement.ceilingY,
+          today: todayId(),
+          streak: streak(self.journal.days, todayId()),
+          journal: shelfSlots(self.journal.days, todayId()).map((slot) => `${slot.dayNumber}:${slot.state}`),
           tools: self.dayTools,
           tool: self.toolbar.selected,
           day0: self.day0Active ? `${DAY0_SCRIPT[self.day0Index].beat}:${self.day0Stage}` : '',

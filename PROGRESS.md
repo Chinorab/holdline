@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 (Paris), slice c done
+Last update: 2026-11-01 (Paris), slice d done
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,8 +8,8 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice c is done, gate included. Next: slice d, T060 onward in
-`specs/001-tabletop-wildfire/tasks.md`.
+Slice d is done. Next: slice e, T069 onward in `specs/001-tabletop-wildfire/tasks.md`
+(settings, accessibility, Glasses layout, Scan table, cold start).
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -28,6 +28,10 @@ Slice c is done, gate included. Next: slice d, T060 onward in
       backburn first cut (hold 1 s on a dug line), unlocks by fires played with one intro
       per tool, Day 0 by doing (wind, slope, breaks, guided first line) with the ghost hand,
       Day 0 button on the pause card. Gate: Day 0 contained at 118 s of game time.
+
+- [x] Slice d (T060 to T068): journal with streak, best and burn scars, practice on the 7
+      days before today, synthesized spatial sound, captions, room haze, smoke plume that
+      stops at a detected ceiling. Gate: two dates by injection, streak 2, practice kept it.
 
 ## Next
 - [ ] Slices d, e, f as in tasks.md
@@ -76,6 +80,10 @@ Slice c is done, gate included. Next: slice d, T060 onward in
   (status fields), never on wall clock; report game seconds (`playSeconds`).
 - The browser pane needs the session window open: if the window is closed, the world never
   finishes loading.
+- Dates in development: `localStorage holdline.dev.today = 'YYYY-MM-DD'` then reload
+  (src/game/clock.ts); production ignores it.
+- Smoke and the haze run on frame time; the fire runs on the capped clock: in the slow
+  pane the smoke looks fast relative to the fire.
 - Glasses profile in the emulator: `set_input_mode` hand first, gaze is the `gaze` device,
   pinch with `select` on `hand-left` (duration 1.2 s at the pane's frame rate).
 - Changing iwsdk.config.json restarts the dev server; a server started by an older session

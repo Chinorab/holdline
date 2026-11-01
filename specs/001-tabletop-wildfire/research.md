@@ -180,6 +180,9 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   fire front centroid scaled by burning cells, wind loop scaled by wind speed, aircraft pass,
   digging, water, soft UI tick. Played through IWSDK `AudioSource` with blob URLs, or three.js
   PositionalAudio if `AudioSource` cannot take generated buffers (verified at slice d start).
+- Slice d: `AudioSource` takes a file URL, so the generated buffers go through three.js
+  `PositionalAudio` with one `AudioListener` on the player's head (three is re-exported by
+  @iwsdk/core). The context starts on the first press (the Enter mixed reality button).
   CREDITS.md states every sound is original.
 - Alternatives: CC0 files (license bookkeeping, larger cold start).
 

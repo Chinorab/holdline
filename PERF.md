@@ -51,6 +51,16 @@ New draws, only while shown:
 water preview 1, aircraft 3 (body, outline, shadow) plus the water veil 1, hold ring 1,
 ghost hand 2 fills and 14 outline lines, inspect tooltip (one small panel).
 
+## Slice d (2026-11-01)
+
+| Moment | Draw calls | Triangles | Notes |
+|--------|-----------:|----------:|-------|
+| Live, Quest 3, 45 cells burning, captions shown, haze on | 76 | 172,336 | read from the last XR frame |
+
+Captions add one small panel, the haze one sphere, the smoke plume no draw (same instanced
+mesh). The draw count is the highest so far and still under 100; slice e checks it again
+with the settings card.
+
 Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
 MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
 measured on the deployed site in slice f.

@@ -90,9 +90,11 @@ function planeShape(): Shape {
 
 export class Aircraft {
   readonly root = new Group();
-  private readonly plane = new Group();
+  /** The aircraft body (sound follows it). */
+  readonly plane = new Group();
   private readonly shadow: Mesh;
-  private readonly veil = stripMesh(HEX.water, 0.5);
+  /** The water veil over the strip (the splash sounds there). */
+  readonly veil = stripMesh(HEX.water, 0.5);
   private readonly pose = { x: 0, z: 0, y: 0, yaw: 0, ux: 0, uz: 0 };
   private flying = false;
   private dropped = false;

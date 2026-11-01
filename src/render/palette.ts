@@ -22,6 +22,7 @@ export const HEX = {
   ash: '#6E6A64',
   wet: '#2D5E8B',
   smoke: '#8F8B85',
+  haze: '#9C8B76',
 } as const;
 
 /** High contrast variant from the canvas (slice e). */

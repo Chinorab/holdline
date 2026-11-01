@@ -132,15 +132,15 @@ captions, room haze, smoke stops at the ceiling.
 **Independent test**: two dates give two fires, streak 2, a practice day leaves the streak;
 each sound shows its caption.
 
-- [ ] T060 [P] [US5] tests/logic/journal.test.ts: streak over dates (clock moved back too), practice keeps the streak, best order, missed days
-- [ ] T061 [US5] Daily seed and numbers in src/sim/day.ts (local date, Day 1 = 2026-11-01, practice on the 7 previous days, a fire belongs to its start date)
-- [ ] T062 [US5] Journal store src/store/journal.ts and scar miniatures in src/ui/journal-view.ts
-- [ ] T063 [US5] Journal panel public/ui/journal.uikitml from the canvas and the shelf beside the board in src/render/shelf.ts
-- [ ] T064 [P] [US6] Sound synthesis in src/audio/synth.ts (crackle, wind, aircraft, dig, water, tick) after the first gesture
-- [ ] T065 [US6] Spatial audio in src/audio/audio-system.ts (crackle at the front scaled by burning cells, wind by speed, aircraft and crew positioned, Sound setting)
-- [ ] T066 [US6] Captions in src/ui/captions.ts with public/ui/captions.uikitml (on by default, above the toolbar)
-- [ ] T067 [P] [US6] Room haze in src/render/haze.ts (alpha 0 to 0.12 from burning cells, clears on containment) and smoke stop at a detected ceiling in src/render/smoke.ts
-- [ ] T068 [US5] Gate: scripts/emulator/slice-d.mjs (two dates by clock injection, streak, journal tiles, practice, captions), screenshots, PERF.md, commit "slice d"
+- [x] T060 [P] [US5] tests/logic/journal.test.ts: streak over dates (clock moved back too), practice keeps the streak, best order, missed days
+- [x] T061 [US5] Daily seed and numbers in src/sim/day.ts (local date, Day 1 = 2026-11-01, practice on the 7 previous days, a fire belongs to its start date) (date source in src/game/clock.ts; a date's daily fire counts once, then it is practice)
+- [x] T062 [US5] Journal store src/store/journal.ts and scar miniatures in src/ui/journal-view.ts
+- [x] T063 [US5] Journal panel public/ui/journal.uikitml from the canvas and the shelf beside the board in src/render/shelf.ts (the shelf is the panel itself, standing left of the board; scars are textures in UIKit images)
+- [x] T064 [P] [US6] Sound synthesis in src/audio/synth.ts (crackle, wind, aircraft, dig, water, tick) after the first gesture (no tick: nothing calls for it)
+- [x] T065 [US6] Spatial audio in src/audio/audio-system.ts (crackle at the front scaled by burning cells, wind by speed, aircraft and crew positioned, Sound setting)
+- [x] T066 [US6] Captions in src/ui/captions.ts with public/ui/captions.uikitml (on by default, above the toolbar) (placed in front of the strip instead: above the toolbar they covered the board)
+- [x] T067 [P] [US6] Room haze in src/render/haze.ts (alpha 0 to 0.12 from burning cells, clears on containment) and smoke stop at a detected ceiling in src/render/smoke.ts (a plume of one puff in five rises to the ceiling)
+- [x] T068 [US5] Gate: scripts/emulator/slice-d.mjs (two dates by clock injection, streak, journal tiles, practice, captions), screenshots, PERF.md, commit "slice d" (ran as scripts/emulator/slice-d.browser.js; see TESTING.md)
 
 ---
 

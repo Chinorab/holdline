@@ -42,6 +42,8 @@ export const placement = {
   candidates: 0,
   footprint: { widthM: 0.56, depthM: 0.35 } as BoardFootprint,
   savedHandle: null as string | null,
+  /** World height of a detected ceiling plane, or null (for the smoke). */
+  ceilingY: null as number | null,
   /** Set by the game for "Place again"; the system starts a new search. */
   redoRequested: false,
   onHandle: (_handle: string | null) => {},
@@ -136,6 +138,7 @@ export class PlacementSystem extends createSystem({
     const dt = Math.min(delta, 0.1);
     const board = this.board?.object3D;
     if (!board) return;
+    this.findCeiling(dt);
     const xr = this.renderer.xr;
     const frame = xr.getFrame() as unknown as FrameLike | null;
     const space = xr.getReferenceSpace() as unknown as SpaceLike | null;
@@ -272,6 +275,24 @@ export class PlacementSystem extends createSystem({
     const scale = board.scale.x;
     this.mat.decompose(board.position, board.quaternion, this.tmp2);
     board.scale.setScalar(scale);
+  }
+
+  private ceilingCheck = 0;
+
+  /** About once a second: the lowest plane labeled ceiling, if the room has one. */
+  private findCeiling(dt: number): void {
+    this.ceilingCheck -= dt;
+    if (this.ceilingCheck > 0) return;
+    this.ceilingCheck = 1;
+    let ceiling: number | null = null;
+    for (const entity of this.queries.planes.entities) {
+      const plane = entity.getValue(XRPlane, '_plane') as { orientation?: string; semanticLabel?: string } | undefined;
+      const object = entity.object3D;
+      if (!plane || !object || plane.orientation !== 'horizontal' || plane.semanticLabel !== 'ceiling') continue;
+      object.getWorldPosition(this.tmp2);
+      if (ceiling === null || this.tmp2.y < ceiling) ceiling = this.tmp2.y;
+    }
+    placement.ceilingY = ceiling;
   }
 
   private findBest(): Candidate | null {
