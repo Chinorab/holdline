@@ -111,17 +111,17 @@ the same fire with no action.
 **Independent test**: fresh storage, Day 0 with hands only, contained in under 3 minutes;
 then each tool once against the baseline.
 
-- [ ] T049 [P] [US4] tests/sim/water-input.test.ts: 120 tick cooldown, strip from start and direction, douses burning cells
-- [ ] T050 [US4] Water drop in src/input/water.ts: look or point, pinch, drag for direction (gaze drag follows the hand), preview strip, cooldown ring on the toolbar
-- [ ] T051 [P] [US4] Generic aircraft and water reveal in src/render/aircraft.ts
-- [ ] T052 [US4] Inspect tooltip in src/input/inspect.ts (400 ms hover, fuel, slope in degrees, Wet; nudged toward view center; hidden during a drag)
-- [ ] T053 [P] [US4] FIRST CUT: tests/sim/backburn.test.ts (fire facing side, up to 12 cells, burns fuel ahead of the front, can escape after a wind shift)
-- [ ] T054 [US4] FIRST CUT: backburn in src/input/backburn.ts (pinch and hold 1 s on a dug line, fill ring, side from the line ticks)
-- [ ] T055 [US3] Unlocks in src/game/unlocks.ts with tests/logic/unlocks.test.ts (Day 0 is fire 1, water after 1 completed fire, backburn after 2, practice counts, intro once)
-- [ ] T056 [US3] Day 0 in src/game/day0.ts with the day0 config in src/sim/day.ts: fixed layout, beats wind, slope, fuel and breaks, guided first line, tutorial crew speed
-- [ ] T057 [P] [US3] Paper cutout ghost hand in src/render/ghost-hand.ts (open and pinch frames, follows a path) driven by src/ui/instructions.ts
-- [ ] T058 [US3] First visit flow in src/game/phases.ts: Day 0 after placement, skipped for returning players, Replay Day 0 in settings, unlock intro beats
-- [ ] T059 [US3] Gate: scripts/emulator/slice-c.mjs (fresh storage, Day 0 timed from xr enter to Contained, water by gaze on the Glasses profile and by hand ray on Quest 3, backburn hold), screenshots, PERF.md, commit "slice c"
+- [x] T049 [P] [US4] tests/sim/water-input.test.ts: 120 tick cooldown, strip from start and direction, douses burning cells (found and fixed: the strip was 25 cells long, not 24)
+- [x] T050 [US4] Water drop in src/input/water.ts: look or point, pinch, drag for direction (gaze drag follows the hand), preview strip, cooldown ring on the toolbar (cooldown shown as seconds on the Water drop button; without a drag the strip lies across the wind)
+- [x] T051 [P] [US4] Generic aircraft and water reveal in src/render/aircraft.ts (the drop is sent when the aircraft reaches the strip, so the wet hatch appears under it)
+- [x] T052 [US4] Inspect tooltip in src/input/inspect.ts (400 ms hover, fuel, slope in degrees, Wet; nudged toward view center; hidden during a drag) with public/ui/inspect.uikitml
+- [x] T053 [P] [US4] FIRST CUT: tests/sim/backburn.test.ts (fire facing side, up to 12 cells, burns fuel ahead of the front, can escape after a wind shift)
+- [x] T054 [US4] FIRST CUT: backburn in src/input/backburn.ts (pinch and hold 1 s on a dug line, fill ring, side from the line ticks) (side: across the line toward the fire; the input carries a neighbor direction 0 to 3, see data-model.md)
+- [x] T055 [US3] Unlocks in src/game/unlocks.ts with tests/logic/unlocks.test.ts (Day 0 is fire 1, water after 1 completed fire, backburn after 2, practice counts, intro once)
+- [x] T056 [US3] Day 0 in src/game/day0.ts with the day0 config in src/sim/day.ts: fixed layout, beats wind, slope, fuel and breaks, guided first line, tutorial crew speed (board and beats in src/sim/day0.ts, one day id per beat; tests/sim/day0.test.ts pins each beat and the line beat timing)
+- [x] T057 [P] [US3] Paper cutout ghost hand in src/render/ghost-hand.ts (open and pinch frames, follows a path) driven by src/ui/instructions.ts (driven from src/game/day0.ts and the unlock intro in phases.ts; no separate instructions module)
+- [x] T058 [US3] First visit flow in src/game/phases.ts: Day 0 after placement, skipped for returning players, Replay Day 0 in settings, unlock intro beats (Day 0 button on the pause card until the settings card exists in slice e)
+- [ ] T059 [US3] Gate: scripts/emulator/slice-c.mjs (fresh storage, Day 0 timed from xr enter to Contained, water by gaze on the Glasses profile and by hand ray on Quest 3, backburn hold), screenshots, PERF.md, commit "slice c" (partly done: Day 0, hand ray water, backburn hold and inspect ran as scripts/emulator/slice-c.browser.js; still to run: water by gaze on the Glasses profile, and the stats read for PERF.md)
 
 ---
 

@@ -1,13 +1,13 @@
-// Drawing on the board. Far: the terrain takes ray pointer events (hand ray, controller,
-// gaze), captured for the whole drag. Near: a pinch within 10 cm above the board draws
-// under the fingers, the pinch point projected straight down. Near wins over far: a ray
-// stroke from a hand that is over the board is ignored, and a near pinch cancels a ray
-// stroke in progress. Strokes become dig lines (src/input/dig.ts).
+// Pinching on the board. Far: the terrain takes ray pointer events (hand ray, controller,
+// gaze), captured for the whole drag. Near: a pinch within 10 cm above the board acts under
+// the fingers, the pinch point projected straight down. Near wins over far: a ray stroke
+// from a hand that is over the board is ignored, and a near pinch cancels a ray stroke in
+// progress. Strokes go to the selected tool (dig, water, backburn); a ray resting on the
+// terrain with no stroke is a hover (inspect).
 
 import { Matrix4, RayInteractable, Vector3, type Entity, type Object3D, type Ray, type World } from '@iwsdk/core';
 import type { Board } from '../render/board.js';
 import { H, W } from '../sim/grid.js';
-import { DigStroke, MIN_LINE_CELLS } from './dig.js';
 
 type Hand = 'left' | 'right';
 const HANDS: Hand[] = ['left', 'right'];
@@ -23,6 +23,20 @@ const SAME_HAND_M = 0.05;
 /** Heightfield ray march: step and longest reach, in meters. */
 const MARCH_STEP_M = 0.002;
 const MARCH_MAX_M = 3;
+
+/** A tool driven by strokes, in board local meters (x right, z toward the player). */
+export interface StrokeTool {
+  begin(x: number, z: number): void;
+  move(x: number, z: number): void;
+  end(): void;
+  cancel(): void;
+  update?(dt: number): void;
+}
+
+export interface HoverListener {
+  hover(x: number, z: number): void;
+  hoverEnd(): void;
+}
 
 interface FarEvent {
   pointerId: number;
@@ -44,22 +58,16 @@ interface FrameWithJoints {
   getJointPose?(joint: unknown, space: unknown): JointPose | undefined | null;
 }
 
-export interface ToolHost {
-  /** Latest packed worker state (see Sim.packState). */
-  packed(): Uint8Array | null;
-  budgetLeft(): number;
-  /** A cell coordinate the line ticks should face. */
-  firePoint(): { x: number; y: number };
-  commit(cells: number[]): void;
-  /** A stroke that found no budget left. */
-  outOfBudget(): void;
-}
-
 export class ToolInput {
   readonly surface: Entity;
-  private readonly stroke = new DigStroke();
+  tool: StrokeTool | null = null;
+  hoverListener: HoverListener | null = null;
+  /** How the last finished stroke was made (status for the emulator gate). */
+  lastKind: 'far' | 'near' | null = null;
   private active: { kind: 'far'; pointerId: number; object: Object3D } | { kind: 'near'; hand: Hand } | null = null;
+  private activeTool: StrokeTool | null = null;
   private on = false;
+  private hovering = false;
   private readonly pinching = { left: false, right: false };
   private readonly overBoard = { left: false, right: false };
   private readonly thumb = new Vector3();
@@ -68,10 +76,6 @@ export class ToolInput {
   private readonly ray = new Vector3();
   private readonly dir = new Vector3();
   private readonly toBoard = new Matrix4();
-  /** Cells the stroke being drawn would plan, within the budget. */
-  previewCells = 0;
-  /** How the last committed stroke was drawn (status for the emulator gate). */
-  lastKind: 'far' | 'near' | null = null;
 
   constructor(
     world: World,
@@ -79,7 +83,6 @@ export class ToolInput {
     parent: Entity,
     private readonly rays: { left: Object3D; right: Object3D },
     private readonly origin: Object3D,
-    private readonly host: ToolHost,
   ) {
     this.surface = world.createTransformEntity(board.surface, { parent });
     const target = board.surface as unknown as { addEventListener(type: string, fn: (e: FarEvent) => void): void };
@@ -87,13 +90,14 @@ export class ToolInput {
     target.addEventListener('pointermove', (e) => this.farMove(e));
     target.addEventListener('pointerup', (e) => this.farUp(e));
     target.addEventListener('pointercancel', (e) => this.farCancel(e));
+    target.addEventListener('pointerleave', () => this.endHover());
   }
 
   get drawing(): boolean {
     return this.active !== null;
   }
 
-  /** Drawing is possible only in the plan and live phases, unpaused, with Dig selected. */
+  /** The board takes pinches and hovers only while a fire can be acted on. */
   setEnabled(on: boolean): void {
     if (on === this.on) return;
     this.on = on;
@@ -101,7 +105,15 @@ export class ToolInput {
     else {
       this.surface.removeComponent(RayInteractable);
       this.cancel();
+      this.endHover();
     }
+  }
+
+  /** Switch tools; a stroke in progress is dropped. */
+  setTool(tool: StrokeTool | null): void {
+    if (tool === this.tool) return;
+    this.cancel();
+    this.tool = tool;
   }
 
   private handOf(e: FarEvent): Hand | null {
@@ -113,34 +125,59 @@ export class ToolInput {
   }
 
   private farDown(e: FarEvent): void {
-    if (!this.on || this.active) return;
+    if (!this.on || this.active || !this.tool) return;
     const hand = this.handOf(e);
     if (hand && this.overBoard[hand]) return;
     e.object.setPointerCapture(e.pointerId);
+    this.endHover();
     this.active = { kind: 'far', pointerId: e.pointerId, object: e.object };
-    this.stroke.clear();
-    this.addWorld(e.point);
+    this.activeTool = this.tool;
+    this.toLocal(e.point);
+    this.activeTool.begin(this.local.x, this.local.z);
   }
 
   // While captured, the library projects moves onto a plane through the first hit, which
   // loses depth on a relief; the ray is marched over the heightfield instead.
   private farMove(e: FarEvent): void {
-    if (this.active?.kind === 'far' && this.active.pointerId === e.pointerId) this.addRay(e.ray);
+    if (this.active?.kind === 'far' && this.active.pointerId === e.pointerId) {
+      if (this.marchRay(e.ray)) this.activeTool?.move(this.local.x, this.local.z);
+      return;
+    }
+    if (!this.on || this.active || !this.hoverListener) return;
+    this.toLocal(e.point);
+    this.hovering = true;
+    this.hoverListener.hover(this.local.x, this.local.z);
   }
 
   private farUp(e: FarEvent): void {
     if (this.active?.kind !== 'far' || this.active.pointerId !== e.pointerId) return;
-    this.addRay(e.ray);
+    if (this.marchRay(e.ray)) this.activeTool?.move(this.local.x, this.local.z);
     this.finish();
   }
 
-  private addRay(ray: Ray): void {
+  private farCancel(e: FarEvent): void {
+    if (this.active?.kind === 'far' && this.active.pointerId === e.pointerId) this.cancel();
+  }
+
+  private endHover(): void {
+    if (!this.hovering) return;
+    this.hovering = false;
+    this.hoverListener?.hoverEnd();
+  }
+
+  private toLocal(point: Vector3): void {
+    this.local.copy(point);
+    this.board.root.worldToLocal(this.local);
+  }
+
+  /** Board local terrain point under a world ray, into this.local. */
+  private marchRay(ray: Ray): boolean {
     const root = this.board.root;
     root.updateWorldMatrix(true, false);
     this.toBoard.copy(root.matrixWorld).invert();
     this.local.copy(ray.origin).applyMatrix4(this.toBoard);
     this.dir.copy(ray.direction).transformDirection(this.toBoard);
-    if (this.march(this.local, this.dir)) this.addLocal(this.local.x, this.local.z);
+    return this.march(this.local, this.dir);
   }
 
   /** First point where a board space ray meets the terrain; written into `origin`. */
@@ -172,12 +209,8 @@ export class ToolInput {
     return this.board.cellHeight[cy * W + cx];
   }
 
-  private farCancel(e: FarEvent): void {
-    if (this.active?.kind === 'far' && this.active.pointerId === e.pointerId) this.cancel();
-  }
-
-  /** Per frame: hand joints for the near pinch. */
-  update(frame: unknown, space: unknown): void {
+  /** Per frame: hand joints for the near pinch, and the tool's own timers. */
+  update(frame: unknown, space: unknown, dt: number): void {
     const f = frame as FrameWithJoints | null;
     const seen = { left: false, right: false };
     if (this.on && f?.getJointPose && space) {
@@ -199,13 +232,14 @@ export class ToolInput {
         const was = this.pinching[hand];
         const now = was ? gap < PINCH_OFF_M : gap < PINCH_ON_M;
         this.pinching[hand] = now;
-        if (now && !was && this.overBoard[hand] && this.active?.kind !== 'near') {
+        if (now && !was && this.overBoard[hand] && this.active?.kind !== 'near' && this.tool) {
           if (this.active?.kind === 'far') this.cancel();
+          this.endHover();
           this.active = { kind: 'near', hand };
-          this.stroke.clear();
-        }
-        if (this.active?.kind === 'near' && this.active.hand === hand) {
-          if (now) this.addLocal(this.local.x, this.local.z);
+          this.activeTool = this.tool;
+          this.activeTool.begin(this.local.x, this.local.z);
+        } else if (this.active?.kind === 'near' && this.active.hand === hand) {
+          if (now) this.activeTool?.move(this.local.x, this.local.z);
           else this.finish();
         }
       }
@@ -216,6 +250,7 @@ export class ToolInput {
       this.overBoard[hand] = false;
       if (this.active?.kind === 'near' && this.active.hand === hand) this.finish();
     }
+    if (this.on) this.activeTool?.update?.(dt);
   }
 
   private inNearZone(p: Vector3): boolean {
@@ -225,41 +260,22 @@ export class ToolInput {
     return p.y > ground - 0.01 && p.y < ground + NEAR_ABOVE_M;
   }
 
-  private addWorld(point: Vector3): void {
-    this.local.copy(point);
-    this.board.root.worldToLocal(this.local);
-    this.addLocal(this.local.x, this.local.z);
-  }
-
-  private addLocal(x: number, z: number): void {
-    const c = this.board.dims.cellOf(x, z);
-    if (c.x < -0.5 || c.y < -0.5 || c.x > W - 0.5 || c.y > H - 0.5) return;
-    if (!this.stroke.add(c.x, c.y)) return;
-    const cells = this.stroke.cells(this.host.packed());
-    const budget = this.host.budgetLeft();
-    this.previewCells = Math.min(cells.length, budget);
-    this.board.lines.setPreview(cells, budget, this.host.firePoint());
-  }
-
   private finish(): void {
-    const kind = this.active?.kind ?? null;
-    const cells = this.stroke.cells(this.host.packed());
-    const budget = this.host.budgetLeft();
-    this.cancel();
-    if (cells.length < MIN_LINE_CELLS) return;
-    if (budget <= 0) {
-      this.host.outOfBudget();
-      return;
-    }
-    this.lastKind = kind;
-    this.host.commit(cells.slice(0, budget));
+    const tool = this.activeTool;
+    this.lastKind = this.active?.kind ?? null;
+    this.release();
+    tool?.end();
   }
 
   private cancel(): void {
+    const tool = this.activeTool;
+    this.release();
+    tool?.cancel();
+  }
+
+  private release(): void {
     if (this.active?.kind === 'far') this.active.object.releasePointerCapture(this.active.pointerId);
     this.active = null;
-    this.stroke.clear();
-    this.previewCells = 0;
-    this.board.lines.clearPreview();
+    this.activeTool = null;
   }
 }

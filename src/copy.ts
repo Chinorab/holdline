@@ -56,6 +56,7 @@ export const PAUSE = {
   resume: 'Resume',
   settings: 'Settings',
   about: 'About',
+  day0: 'Day 0',
 } as const;
 
 export const RESULT = {
@@ -94,6 +95,8 @@ export const STATUS = {
   scanTable: 'Scan table',
   placeAgain: 'Place again',
   noBudget: 'No crew line left',
+  readyIn: (seconds: number) => `Ready in ${Math.ceil(seconds)} s`,
+  noLineHere: 'Hold on a dug line',
   resume: (secondsLeft: number) => `Resume ${Math.floor(secondsLeft / 60)}:${String(Math.floor(secondsLeft % 60)).padStart(2, '0')}`,
 } as const;
 
@@ -104,6 +107,12 @@ export const TOOL = {
   pause: 'Pause',
   budget: 'Crew line',
   km,
+  cooldown: (seconds: number) => `${Math.ceil(seconds)} s`,
+} as const;
+
+export const INSPECT = {
+  slope: (degrees: number) => `${Math.round(degrees)}° slope`,
+  wet: 'Wet',
 } as const;
 
 export const FUEL_NAMES = ['Grass', 'Brush', 'Forest', 'Rock', 'Water', 'Road', 'House'] as const;
@@ -122,7 +131,7 @@ export function allCopy(): { key: string; text: string; instruction: boolean }[]
       for (const [k, v] of Object.entries(value)) visit(`${key}.${k}`, v, instruction);
   };
   const groups: Record<string, unknown> = {
-    BRAND, WEB, BRIEF, PAUSE, RESULT, ABOUT, CAPTION, STATUS, TOOL, FUEL_NAMES,
+    BRAND, WEB, BRIEF, PAUSE, RESULT, ABOUT, CAPTION, STATUS, TOOL, INSPECT, FUEL_NAMES,
   };
   for (const [k, v] of Object.entries(groups)) visit(k, v, false);
   visit('INSTRUCTION', INSTRUCTION, true);

@@ -1,5 +1,6 @@
-// The game loop: landing preview, placing, brief (the landscape rises), plan (30 s, the fire
-// waits), live (3 minutes), resolving, outcome and the 10 s time lapse, with pause on top.
+// The game loop: landing preview, placing, Day 0 on a first visit, brief (the landscape
+// rises), plan (30 s, the fire waits), live (3 minutes), resolving, outcome and the 10 s time
+// lapse, with pause on top. Tools: dig line, water drop, backburn; inspect on hover.
 
 import {
   BoxGeometry,
@@ -11,22 +12,29 @@ import {
   createSystem,
   type Entity,
 } from '@iwsdk/core';
-import { BRIEF, INSTRUCTION, RESULT, ABOUT, STATUS } from '../copy.js';
-import { ToolInput } from '../input/tool-system.js';
+import { ABOUT, BRIEF, INSTRUCTION, PAUSE, RESULT, STATUS } from '../copy.js';
+import { BackburnTool } from '../input/backburn.js';
+import { DigTool } from '../input/dig-tool.js';
+import { Inspect } from '../input/inspect.js';
+import { ToolInput, type StrokeTool } from '../input/tool-system.js';
+import { WaterTool } from '../input/water.js';
 import { Board } from '../render/board.js';
 import { TICK_HZ, localDayId, windWord } from '../sim/day.js';
+import { lineCells, WATER_LENGTH_CELLS, WATER_WIDTH_CELLS } from '../sim/inputs.js';
 import { W } from '../sim/grid.js';
-import type { OutcomeSide, RunKind } from '../sim/types.js';
+import type { BackburnSide, Input, OutcomeSide, RunKind, Tool } from '../sim/types.js';
 import { ProgressStore, type StoredRun } from '../store/progress.js';
 import { SafeStore } from '../store/storage.js';
 import { Panel, uiUrl } from '../ui/panels.js';
 import { Toolbar } from '../ui/toolbar.js';
 import type { OutcomeInfo } from '../worker/client.js';
 import { placement } from '../xr/placement-system.js';
+import { DAY0_END_S, DAY0_SCRIPT } from './day0.js';
 import { Session } from './session.js';
 import { BoardHandle, BoardHitProxy, BoardRoot } from './tags.js';
+import { introFor, toolsFor } from './unlocks.js';
 
-export type Phase = 'landing' | 'placing' | 'brief' | 'plan' | 'live' | 'resolving' | 'outcome' | 'timelapse';
+export type Phase = 'landing' | 'placing' | 'day0' | 'brief' | 'plan' | 'live' | 'resolving' | 'outcome' | 'timelapse';
 
 const RISE_S = 8;
 const PLAN_S = 30;
@@ -38,6 +46,7 @@ const TOOLBAR_W = 0.225;
 const TOOLBAR_H = 0.077;
 /** Where the board waits in the browser view (matches iwsdk.config.json's camera). */
 const PREVIEW_POSITION = new Vector3(0, 0.76, -0.47);
+const INTRO_TEXT: Record<'water' | 'backburn', string> = { water: INSTRUCTION.water, backburn: INSTRUCTION.backburn };
 
 /** Read only view of the game for tests and the CLI (window.holdline). */
 export interface GameStatus {
@@ -59,6 +68,18 @@ export interface GameStatus {
   lastStroke: 'far' | 'near' | null;
   resumable: boolean;
   dugCells: number;
+  tools: Tool[];
+  tool: Tool | null;
+  day0: string;
+  completedFires: number;
+  intro: Tool | null;
+  waterCooldown: number;
+  aircraft: boolean;
+  inspect: number;
+  strip: string;
+  ghost: boolean;
+  /** Seconds of game time since entering mixed reality (frames capped like the fire clock). */
+  playSeconds: number;
 }
 
 export class GameSystem extends createSystem({}) {
@@ -74,16 +95,30 @@ export class GameSystem extends createSystem({}) {
   private dayNumber = 1;
   private kind: RunKind = 'daily';
   private lapse: OutcomeInfo | null = null;
-  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result', Panel>;
+  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result' | 'inspect', Panel>;
   private readonly camWorld = new Vector3();
   private immersive = false;
   private toolbar!: Toolbar;
   private tools!: ToolInput;
+  private digTool!: DigTool;
+  private waterTool!: WaterTool;
+  private backburnTool!: BackburnTool;
+  private lightTool!: StrokeTool;
+  private inspect!: Inspect;
   private lineId = 0;
   private lineCount = 0;
   private pendingCells = 0;
   private notice = 0;
+  private stripText = '';
   private storedRun: StoredRun | null = null;
+  private dayTools: Tool[] = ['dig'];
+  private intro: Tool | null = null;
+  /** Day 0: beat index, its stage, and whether a re-placement should come back to it. */
+  private day0Index = -1;
+  private day0Stage: 'prompt' | 'live' | 'ending' = 'prompt';
+  private playSeconds = 0;
+  /** Game seconds the current Day 0 prompt has been waiting for a pinch. */
+  private day0Wait = 0;
 
   init(): void {
     this.store = new ProgressStore(new SafeStore());
@@ -109,13 +144,7 @@ export class GameSystem extends createSystem({}) {
     handle.addComponent(OneHandGrabbable, { rotate: false, translate: true });
 
     this.createPanels();
-    this.tools = new ToolInput(this.world, this.board, this.boardEntity, this.player.raySpaces, this.player, {
-      packed: () => this.session?.frame?.stateRGBA ?? null,
-      budgetLeft: () => this.budgetLeft(),
-      firePoint: () => this.firePoint(),
-      commit: (cells) => this.dig(cells),
-      outOfBudget: () => this.showNotice(STATUS.noBudget),
-    });
+    this.createTools();
     placement.footprint = { widthM: dims.widthM, depthM: dims.depthM };
     placement.onHandle = (h) => this.store.saveProgress({ anchorHandle: h });
 
@@ -137,6 +166,7 @@ export class GameSystem extends createSystem({}) {
       pause: make('PausePanel', 'pause.uikitml', 0.32, 0.198),
       about: make('AboutPanel', 'about.uikitml', 0.32, 0.198),
       result: make('ResultPanel', 'result.uikitml', 0.4, 0.25),
+      inspect: make('InspectPanel', 'inspect.uikitml', 0.088, 0.022, false),
     };
     const { widthM, depthM } = this.board.dims;
     const stand = (p: Panel) => p.place(0, 0.1 + p.heightM / 2, -depthM / 2 - 0.03, -0.2);
@@ -155,6 +185,7 @@ export class GameSystem extends createSystem({}) {
     this.panels.pause.onClick('btn-resume', () => this.resume());
     this.panels.pause.onClick('btn-about', () => this.showAbout(true));
     this.panels.pause.onClick('btn-place', () => this.placeAgain());
+    this.panels.pause.onClick('btn-day0', () => this.replayDay0());
     this.panels.about.onClick('btn-close', () => this.showAbout(false));
     this.panels.result.onClick('btn-replay', () => this.startLapse());
     this.panels.result.onClick('btn-done', () => this.playAgain());
@@ -162,7 +193,52 @@ export class GameSystem extends createSystem({}) {
     this.panels.about.setText('about-safety', ABOUT.safety);
   }
 
-  private startDay(dayId: string, kind: RunKind): void {
+  private createTools(): void {
+    this.tools = new ToolInput(this.world, this.board, this.boardEntity, this.player.raySpaces, this.player);
+    const packed = () => this.session?.frame?.stateRGBA ?? null;
+    this.digTool = new DigTool(this.board, {
+      packed,
+      budgetLeft: () => this.budgetLeft(),
+      firePoint: () => this.firePoint(),
+      commit: (cells) => this.dig(cells),
+      outOfBudget: () => this.showNotice(STATUS.noBudget),
+    });
+    this.waterTool = new WaterTool(this.board, this.board.waterPreview, {
+      cooldownLeft: () => this.waterCooldownLeft(),
+      windDeg: () => this.session?.frame?.wind.dirDeg ?? this.session?.day?.wind.dirDeg ?? 0,
+      drop: (startCell, dirDeg) => this.water(startCell, dirDeg),
+      notReady: (seconds) => this.showNotice(STATUS.readyIn(seconds)),
+    });
+    this.backburnTool = new BackburnTool(this.board, this.board.holdRing, {
+      packed,
+      firePoint: () => this.firePoint(),
+      light: (cell, side) => this.backburn(cell, side),
+      noLine: () => this.showNotice(STATUS.noLineHere),
+    });
+    // Day 0's "Pinch to light": any pinch on the board starts the beat.
+    this.lightTool = {
+      begin: () => this.startDay0Beat(),
+      move: () => {},
+      end: () => {},
+      cancel: () => {},
+    };
+    this.inspect = new Inspect(this.board, this.panels.inspect, {
+      packed,
+      elevation: () => this.board.elevationM,
+    });
+    this.tools.hoverListener = this.inspect;
+    this.toolbar.onSelect = (tool) => this.tools.setTool(this.strokeTool(tool));
+  }
+
+  private strokeTool(tool: Tool | null): StrokeTool | null {
+    if (tool === 'dig') return this.digTool;
+    if (tool === 'water') return this.waterTool;
+    if (tool === 'backburn') return this.backburnTool;
+    return null;
+  }
+
+  /** A fresh session for a day: the daily fire, a practice run, or a Day 0 beat. */
+  private openSession(dayId: string, kind: RunKind, tools: Tool[]): Session {
     this.session?.dispose();
     this.dayId = dayId;
     this.kind = kind;
@@ -172,25 +248,33 @@ export class GameSystem extends createSystem({}) {
     this.lineCount = 0;
     this.pendingCells = 0;
     this.tools.setEnabled(false);
+    this.board.ghost.stop();
+    this.intro = null;
+    this.dayTools = tools;
+    const session = new Session(this.store, dayId, kind, `${dayId}:${Date.now()}`, tools);
+    this.session = session;
+    session.onFrame = (frame) => {
+      // A Day 0 beat that ran out is fast forwarded in the worker: not worth showing.
+      if (this.phase === 'timelapse' || (kind === 'tutorial' && session.resolving)) return;
+      this.board.applyFrame(frame);
+    };
+    return session;
+  }
+
+  private startDay(dayId: string, kind: RunKind): void {
     const stored = this.store.loadRun();
+    const tools = toolsFor(this.store.progress.completedFires);
+    const session = this.openSession(dayId, kind, tools);
     this.storedRun =
       kind === 'daily' && stored && stored.dayId === dayId && stored.status === 'in_progress' && stored.pausedAtTick > 0 &&
       stored.settings.slowerFire === this.store.settings.slowerFire
         ? stored
         : null;
-    const runId = `${dayId}:${Date.now()}`;
-    const session = new Session(this.store, dayId, kind, runId);
-    this.session = session;
-    session.onFrame = (frame) => {
-      if (this.phase !== 'timelapse') this.board.applyFrame(frame);
-    };
     session.onOutcome = (info) => this.showOutcome(info);
     void session.start().then((ready) => {
       if (this.session !== session) return;
       this.dayNumber = ready.day.dayNumber;
-      this.board.setLandscape(ready.landscape);
-      this.board.setWind(ready.day.wind.speedMs, ready.day.wind.dirDeg, true);
-      this.board.setStepSeconds(ready.day.spreadPeriodTicks / TICK_HZ);
+      this.showLandscape(ready, dayId);
       const word = windWord(ready.day.wind.speedMs);
       this.panels.brief.setText('brief-day', BRIEF.day(ready.day.dayNumber));
       this.panels.brief.setText('brief-goal', BRIEF.goal(ready.landscape.houses.length));
@@ -201,6 +285,7 @@ export class GameSystem extends createSystem({}) {
       // The dial faces the player like the board: up is the far edge.
       this.panels.brief.setProps('brief-arrow', { transformRotateZ: -ready.day.wind.dirDeg });
       this.toolbar.setUnlocked(ready.day.tools);
+      this.toolbar.select('dig');
       const run = this.storedRun;
       this.panels.brief.setProps('btn-resume-run', { display: run ? 'flex' : 'none' });
       if (run) this.panels.brief.setText('resume-label', STATUS.resume((ready.day.liveTicks - run.pausedAtTick) / TICK_HZ));
@@ -210,10 +295,105 @@ export class GameSystem extends createSystem({}) {
     });
   }
 
+  private showLandscape(ready: { day: { wind: { speedMs: number; dirDeg: number }; spreadPeriodTicks: number }; landscape: Parameters<Board['setLandscape']>[0] }, key: string): void {
+    if (this.board.landscapeKey === key) this.board.resetFire();
+    else this.board.setLandscape(ready.landscape, key);
+    this.board.setWind(ready.day.wind.speedMs, ready.day.wind.dirDeg, true);
+    this.board.setStepSeconds(ready.day.spreadPeriodTicks / TICK_HZ);
+  }
+
+  // Day 0 ---------------------------------------------------------------------------------
+
+  private get day0Active(): boolean {
+    return this.day0Index >= 0;
+  }
+
+  private startDay0(): void {
+    this.day0Index = 0;
+    this.openDay0Beat();
+  }
+
+  private replayDay0(): void {
+    this.paused = false;
+    this.panels.pause.show(false);
+    this.panels.about.show(false);
+    this.startDay0();
+  }
+
+  private openDay0Beat(): void {
+    const step = DAY0_SCRIPT[this.day0Index];
+    const session = this.openSession(`day0-${step.beat}`, 'tutorial', step.beat === 'line' ? ['dig'] : []);
+    session.onOutcome = (info) => this.day0Outcome(info);
+    this.day0Stage = 'prompt';
+    this.enter('day0');
+    void session.start().then((ready) => {
+      if (this.session !== session) return;
+      this.dayNumber = 0;
+      this.showLandscape(ready, 'day0');
+      this.board.setRise(1);
+      this.toolbar.setUnlocked(ready.day.tools);
+      this.readyForPlay = true;
+      this.day0Wait = 0;
+      this.say(step.prompt);
+      this.board.ghost.play(this.ghostPath(step.path), step.demo);
+      if (step.beat === 'line') {
+        this.panels.toolbar.show(true);
+        this.toolbar.select('dig');
+        // The guide: a dashed line where the first line goes.
+        const guide = lineCells(step.path.map((p) => ({ x: p.x + 0.5, y: p.y + 0.5 })));
+        this.board.lines.setPreview(guide, ready.day.crewBudgetCells, this.firePoint());
+      } else {
+        this.tools.setTool(this.lightTool);
+      }
+    });
+  }
+
+  /** The beat's fire starts: on the player's pinch (or line), or by itself after a while. */
+  private startDay0Beat(): void {
+    if (this.phase !== 'day0' || this.day0Stage !== 'prompt' || !this.readyForPlay || !this.session) return;
+    const step = DAY0_SCRIPT[this.day0Index];
+    this.day0Stage = 'live';
+    this.phaseTime = 0;
+    this.board.ghost.stop();
+    if (step.beat !== 'line') this.tools.setTool(null);
+    this.say(step.during);
+    this.session.beginLive();
+  }
+
+  private day0Outcome(info: OutcomeInfo): void {
+    const step = DAY0_SCRIPT[this.day0Index];
+    if (step.beat !== 'line') {
+      this.day0Index++;
+      this.openDay0Beat();
+      return;
+    }
+    this.day0Stage = 'ending';
+    this.phaseTime = 0;
+    this.tools.setTool(null);
+    this.say(info.outcome.resolvedByFastForward ? RESULT.outOfTime : INSTRUCTION.contained);
+  }
+
+  private finishDay0(): void {
+    const progress = this.store.progress;
+    // Day 0 counts as a completed fire (it unlocks the water drop for the next one).
+    this.store.saveProgress({ day0Done: true, completedFires: progress.completedFires + 1 });
+    this.day0Index = -1;
+    this.startDay(localDayId(new Date()), 'daily');
+    this.enter('brief');
+  }
+
+  private ghostPath(cells: readonly { x: number; y: number }[]): { x: number; y: number; z: number }[] {
+    const d = this.board.dims;
+    return cells.map((c) => ({ x: d.xOf(c.x), y: this.board.cellHeight[c.y * W + c.x], z: d.zOf(c.y) }));
+  }
+
+  // Phases --------------------------------------------------------------------------------
+
   private onVisibility(state: VisibilityState): void {
     const immersive = state !== VisibilityState.NonImmersive;
     if (immersive && !this.immersive) {
       this.immersive = true;
+      this.playSeconds = 0;
       this.board.root.visible = false;
       placement.start(this.store.progress.anchorHandle);
       this.enter('placing');
@@ -225,9 +405,18 @@ export class GameSystem extends createSystem({}) {
       this.board.root.visible = true;
       this.board.root.position.copy(PREVIEW_POSITION);
       this.board.root.quaternion.identity();
+      if (this.day0Active) {
+        this.day0Index = -1;
+        this.startDay(localDayId(new Date()), 'daily');
+      }
       this.enter('landing');
     }
     if (state === VisibilityState.VisibleBlurred) this.pause();
+  }
+
+  private say(text: string): void {
+    this.stripText = text;
+    this.panels.strip.setText('strip-text', text);
   }
 
   private enter(phase: Phase): void {
@@ -236,31 +425,54 @@ export class GameSystem extends createSystem({}) {
     const p = this.panels;
     p.brief.show(phase === 'brief' || phase === 'plan');
     p.result.show(phase === 'outcome');
-    p.toolbar.show(phase === 'live' || phase === 'brief' || phase === 'plan' || phase === 'timelapse');
+    const day0Line = phase === 'day0' && DAY0_SCRIPT[this.day0Index]?.beat === 'line';
+    p.toolbar.show(phase === 'live' || phase === 'brief' || phase === 'plan' || phase === 'timelapse' || day0Line);
     p.pause.show(false);
     p.about.show(false);
     p.strip.show(phase !== 'landing' && phase !== 'outcome' && phase !== 'resolving');
     this.board.outline.visible = false;
+    if (phase !== 'plan' && phase !== 'day0') this.board.ghost.stop();
     switch (phase) {
       case 'placing':
-        p.strip.setText('strip-text', INSTRUCTION.place);
+        this.say(INSTRUCTION.place);
         break;
       case 'brief':
         this.board.setRise(0);
-        p.strip.setText('strip-text', INSTRUCTION.plan);
+        this.say(INSTRUCTION.plan);
         p.brief.setText('start-label', BRIEF.start);
         break;
       case 'plan':
-        p.strip.setText('strip-text', INSTRUCTION.draw);
+        this.startIntro();
         break;
       case 'live':
-        p.strip.setText('strip-text', this.lineCount > 0 ? INSTRUCTION.watch : INSTRUCTION.draw);
+        this.say(this.lineCount > 0 ? INSTRUCTION.watch : INSTRUCTION.draw);
         break;
       case 'timelapse':
-        p.strip.setText('strip-text', RESULT.replay);
+        this.say(RESULT.replay);
         this.board.crew.root.visible = false;
         break;
     }
+  }
+
+  /** A tool new in this fire: selected, shown once by the ghost hand, named on the strip. */
+  private startIntro(): void {
+    const tool = this.kind === 'tutorial' ? null : introFor(this.dayTools, this.store.progress.introsShown);
+    this.intro = tool;
+    if (tool !== 'water' && tool !== 'backburn') {
+      this.say(INSTRUCTION.draw);
+      return;
+    }
+    this.toolbar.select(tool);
+    this.say(INTRO_TEXT[tool]);
+    // Between the fire and the town, where the tool would help.
+    const fire = this.firePoint();
+    const town = this.session?.ready?.landscape.town ?? fire;
+    const mx = Math.round(fire.x + (town.x - fire.x) * 0.4);
+    const my = Math.round(fire.y + (town.y - fire.y) * 0.4);
+    const path = tool === 'water' ? [{ x: mx - 6, y: my }, { x: mx + 6, y: my }] : [{ x: mx, y: my }];
+    const clamp = (c: { x: number; y: number }) => ({ x: Math.min(W - 1, Math.max(0, c.x)), y: Math.min(79, Math.max(0, c.y)) });
+    this.board.ghost.play(this.ghostPath(path.map(clamp)), tool === 'water' ? 'drag' : 'hold');
+    this.store.saveProgress({ introsShown: { ...this.store.progress.introsShown, [tool]: true } });
   }
 
   private startLive(): void {
@@ -294,6 +506,12 @@ export class GameSystem extends createSystem({}) {
     return Math.max(0, left - this.pendingCells);
   }
 
+  private waterCooldownLeft(): number {
+    // While the aircraft is on its way the drop is not applied yet: count it as cooling.
+    if (this.board.aircraft.busy) return 20;
+    return this.session?.waterCooldownLeft ?? 0;
+  }
+
   /** Where the line ticks point: the fire front, or the ignition before it spreads. */
   private firePoint(): { x: number; y: number } {
     const front = this.session?.frame?.frontCentroid;
@@ -302,12 +520,28 @@ export class GameSystem extends createSystem({}) {
     return { x: cell % W, y: Math.floor(cell / W) };
   }
 
-  private dig(cells: number[]): void {
+  private canAct(): boolean {
+    return (this.phase === 'plan' || this.phase === 'live' || (this.phase === 'day0' && this.day0Stage !== 'ending')) && !this.paused;
+  }
+
+  private send(input: Input, onOk: (input: Input) => void): void {
     const session = this.session;
     if (!session) return;
+    void session.sendInput(input).then((reply) => {
+      if (this.session !== session) return;
+      if (reply.ok) onOk(reply.input);
+      else if (reply.reason === 'budget') this.showNotice(STATUS.noBudget);
+      else if (reply.reason === 'cooldown') this.showNotice(STATUS.readyIn(session.waterCooldownLeft));
+      else if (input.kind === 'backburn') this.showNotice(STATUS.noLineHere);
+    });
+  }
+
+  private dig(cells: number[]): void {
+    if (!this.session) return;
     const lineId = ++this.lineId;
     this.pendingCells += cells.length;
     const fire = this.firePoint();
+    const session = this.session;
     void session.sendInput({ kind: 'dig', tick: 0, lineId, cells }).then((reply) => {
       this.pendingCells = Math.max(0, this.pendingCells - cells.length);
       if (this.session !== session) return;
@@ -318,8 +552,29 @@ export class GameSystem extends createSystem({}) {
       if (reply.input.kind !== 'dig') return;
       this.board.lines.add(reply.input.cells, fire);
       this.lineCount++;
-      if (this.phase === 'live' && this.notice <= 0) this.panels.strip.setText('strip-text', INSTRUCTION.watch);
+      if (this.phase === 'day0') this.startDay0Beat();
+      if (this.phase === 'live' && this.notice <= 0) this.say(INSTRUCTION.watch);
     });
+  }
+
+  private water(startCell: number, dirDeg: number): void {
+    const session = this.session;
+    if (!session) return;
+    this.board.ghost.stop();
+    this.board.aircraft.fly(startCell, dirDeg, () => {
+      if (this.session !== session || !this.canActOn()) return;
+      this.send({ kind: 'water', tick: 0, startCell, dirDeg, lengthCells: WATER_LENGTH_CELLS, widthCells: WATER_WIDTH_CELLS }, () => {});
+    });
+  }
+
+  /** The aircraft may arrive after a pause; it drops only while the fire can still be fought. */
+  private canActOn(): boolean {
+    return this.phase === 'plan' || this.phase === 'live';
+  }
+
+  private backburn(cell: number, side: BackburnSide): void {
+    this.board.ghost.stop();
+    this.send({ kind: 'backburn', tick: 0, lineId: 0, cell, side }, () => {});
   }
 
   private showNotice(text: string): void {
@@ -333,6 +588,7 @@ export class GameSystem extends createSystem({}) {
     this.paused = true;
     this.session?.pause();
     this.panels.pause.show(true);
+    this.panels.pause.setText('day0-label', PAUSE.day0);
     this.panels.brief.show(false);
     this.panels.result.show(false);
   }
@@ -381,7 +637,7 @@ export class GameSystem extends createSystem({}) {
     });
     this.enter('outcome');
     this.panels.strip.show(true);
-    this.panels.strip.setText('strip-text', info.outcome.resolvedByFastForward ? RESULT.outOfTime : INSTRUCTION.contained);
+    this.say(info.outcome.resolvedByFastForward ? RESULT.outOfTime : INSTRUCTION.contained);
   }
 
   private dugCells(info: OutcomeInfo | null): number {
@@ -406,16 +662,21 @@ export class GameSystem extends createSystem({}) {
     for (const panel of Object.values(this.panels)) panel.poll();
     const frozen = this.paused;
     if (!frozen) this.phaseTime += dt;
-    const canDraw = (this.phase === 'plan' || this.phase === 'live') && !frozen && this.readyForPlay && this.toolbar.selected === 'dig';
-    this.tools.setEnabled(canDraw);
-    if (canDraw) this.tools.update(this.renderer.xr.getFrame(), this.renderer.xr.getReferenceSpace());
+    if (this.immersive) this.playSeconds += Math.min(dt, 0.25);
+
+    const acting = this.canAct() && this.readyForPlay;
+    this.tools.setEnabled(acting);
+    if (acting) this.tools.update(this.renderer.xr.getFrame(), this.renderer.xr.getReferenceSpace(), dt);
+    this.inspect.update(acting ? dt : 0, this.tools.drawing || !acting);
+    if (this.intro && this.tools.drawing) this.board.ghost.stop();
     const day = this.session?.day;
-    if (day) this.toolbar.setBudget(this.budgetLeft(), day.crewBudgetCells, this.tools.previewCells);
+    if (day) {
+      this.toolbar.setBudget(this.budgetLeft(), day.crewBudgetCells, this.digTool.previewCells);
+      this.toolbar.setCooldown(this.waterCooldownLeft() > 0 && !this.board.aircraft.busy ? this.waterCooldownLeft() : 0);
+    }
     if (this.notice > 0) {
       this.notice -= dt;
-      if (this.notice <= 0 && (this.phase === 'live' || this.phase === 'plan')) {
-        this.panels.strip.setText('strip-text', this.phase === 'live' && this.lineCount > 0 ? INSTRUCTION.watch : INSTRUCTION.draw);
-      }
+      if (this.notice <= 0) this.panels.strip.setText('strip-text', this.restingText());
     }
     this.player.head.getWorldPosition(this.camWorld);
     if (!this.immersive) this.world.camera.getWorldPosition(this.camWorld);
@@ -425,10 +686,21 @@ export class GameSystem extends createSystem({}) {
         this.board.outline.visible = placement.status === 'candidate';
         if (placement.status === 'placed') {
           this.board.root.visible = true;
-          this.enter(this.readyForPlay ? 'brief' : 'brief');
-          if (placement.mode === 'fallback') this.panels.strip.setText('strip-text', INSTRUCTION.move);
+          if (this.day0Active) this.enter('day0');
+          else if (!this.store.progress.day0Done) this.startDay0();
+          else this.enter('brief');
+          if (placement.mode === 'fallback' && !this.day0Active) this.say(INSTRUCTION.move);
         }
         break;
+      case 'day0': {
+        if (frozen || !this.readyForPlay) break;
+        const step = DAY0_SCRIPT[this.day0Index];
+        this.day0Wait += Math.min(dt, 0.25);
+        if (this.day0Stage === 'prompt' && this.day0Wait >= step.autoStartS) this.startDay0Beat();
+        else if (this.day0Stage === 'live') this.session?.update(dt);
+        else if (this.day0Stage === 'ending' && this.phaseTime >= DAY0_END_S) this.finishDay0();
+        break;
+      }
       case 'brief': {
         if (!this.readyForPlay) break;
         const t = Math.min(1, this.phaseTime / RISE_S);
@@ -465,6 +737,15 @@ export class GameSystem extends createSystem({}) {
     this.board.update(dt, this.camWorld, frozen);
   }
 
+  /** What the strip goes back to after a notice. */
+  private restingText(): string {
+    if (this.phase === 'day0') return this.stripText;
+    if (this.phase === 'plan' && this.intro && (this.intro === 'water' || this.intro === 'backburn')) return INTRO_TEXT[this.intro];
+    if (this.phase === 'live' && this.lineCount > 0) return INSTRUCTION.watch;
+    if (this.phase === 'live' || this.phase === 'plan') return INSTRUCTION.draw;
+    return this.stripText;
+  }
+
   /** Development only (window.__holdlineDebug): end the live phase now. */
   debugSkipToEnd(): void {
     if (this.phase === 'live') this.session?.skipToEnd();
@@ -494,6 +775,17 @@ export class GameSystem extends createSystem({}) {
           lastStroke: self.tools.lastKind,
           resumable: self.storedRun !== null,
           dugCells: self.dugCells(self.session?.outcome ?? null),
+          tools: self.dayTools,
+          tool: self.toolbar.selected,
+          day0: self.day0Active ? `${DAY0_SCRIPT[self.day0Index].beat}:${self.day0Stage}` : '',
+          completedFires: self.store.progress.completedFires,
+          intro: self.intro,
+          waterCooldown: self.waterCooldownLeft(),
+          aircraft: self.board.aircraft.busy,
+          inspect: self.inspect.shownCell,
+          strip: self.stripText,
+          ghost: self.board.ghost.active,
+          playSeconds: Math.round(self.playSeconds),
         };
       },
     };

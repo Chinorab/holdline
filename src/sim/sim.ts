@@ -32,6 +32,11 @@ export interface SimOptions {
 export type InputResult = { ok: true; input: Input } | { ok: false; reason: InputRejection };
 
 export const RESOLVE_CAP_STEPS = 600;
+/** Most cells one backburn lights. */
+export const BACKBURN_CELLS = 12;
+/** Neighbor offsets for a BackburnSide: east, near, west, far. */
+const SIDE_DX = [1, 0, -1, 0];
+const SIDE_DY = [0, 1, 0, -1];
 
 export class Sim {
   readonly day: DayConfig;
@@ -122,9 +127,50 @@ export class Sim {
       case 'water':
         return this.applyWater(input);
       case 'backburn':
-        // Backburn arrives in slice c (first cut); until then it is locked.
-        return { ok: false, reason: this.day.tools.includes('backburn') ? 'invalid' : 'locked' };
+        return this.applyBackburn(input);
     }
+  }
+
+  /**
+   * Light a controlled fire along a dug line: from the chosen line cell, the nearest line
+   * cells (4 connected, breadth first in a fixed order) light the fuel next to them on the
+   * side that faces the fire, up to BACKBURN_CELLS cells.
+   */
+  private applyBackburn(input: Extract<Input, { kind: 'backburn' }>): InputResult {
+    if (!this.day.tools.includes('backburn')) return { ok: false, reason: 'locked' };
+    const { cell, side } = input;
+    if (!Number.isInteger(cell) || cell < 0 || cell >= N || !(this.flags[cell] & Flag.Line)) return { ok: false, reason: 'invalid' };
+    if (!(side === 0 || side === 1 || side === 2 || side === 3) || this.contained) return { ok: false, reason: 'invalid' };
+    const queue = [cell];
+    const seen = new Set<number>(queue);
+    const lit: number[] = [];
+    for (let k = 0; k < queue.length && lit.length < BACKBURN_CELLS; k++) {
+      const c = queue[k];
+      const x = c % W;
+      const y = (c - x) / W;
+      const tx = x + SIDE_DX[side];
+      const ty = y + SIDE_DY[side];
+      if (inBounds(tx, ty)) {
+        const t = cellIndex(tx, ty);
+        if (this.state[t] === CellState.Fuel && this.land.fuel[t] !== Fuel.Structure) lit.push(t);
+      }
+      for (let d = 0; d < 4; d++) {
+        const nx = x + SIDE_DX[d];
+        const ny = y + SIDE_DY[d];
+        if (!inBounds(nx, ny)) continue;
+        const n = cellIndex(nx, ny);
+        if (!seen.has(n) && this.flags[n] & Flag.Line) {
+          seen.add(n);
+          queue.push(n);
+        }
+      }
+    }
+    if (lit.length === 0) return { ok: false, reason: 'invalid' };
+    for (const c of lit) {
+      if (this.igniteNow(c, this.step, Flag.Controlled)) this.burnList[this.burnListLen++] = c;
+    }
+    this.events.push({ type: 'backburn', tick: input.tick, cells: lit.length });
+    return { ok: true, input };
   }
 
   private applyDig(input: Extract<Input, { kind: 'dig' }>): InputResult {
@@ -237,7 +283,7 @@ export class Sim {
       this.crewProgress = 0;
     }
     this.crewProgress++;
-    if (this.crewProgress < TUNING.crewTicksPerCell) return;
+    if (this.crewProgress < (this.day.crewTicksPerCell ?? TUNING.crewTicksPerCell)) return;
     const c = this.crewCell;
     this.crewCell = -1;
     this.flags[c] &= ~Flag.Planned;

@@ -5,6 +5,7 @@ import { RAD_TO_DEG, datan2, dcos, dsin } from './detmath.js';
 import { H, W, cellIndex } from './grid.js';
 import { hashString } from './hash.js';
 import { Channel, rand01 } from './rng.js';
+import { day0Beat, day0Landscape, makeDay0Config } from './day0.js';
 import { generateLandscape } from './terrain-gen.js';
 import { Fuel, type DayConfig, type Landscape, type Tool, type WindShift } from './types.js';
 
@@ -61,6 +62,8 @@ export function bearingDeg(ax: number, ay: number, bx: number, by: number): numb
 }
 
 export function makeDay(dayId: string, options: DayOptions = {}): { day: DayConfig; land: Landscape } {
+  const beat = day0Beat(dayId);
+  if (beat) return { day: makeDay0Config(beat, options), land: day0Landscape() };
   const seed = seedForDay(dayId);
   const land = generateLandscape(seed);
   const day = makeDayConfig(dayId, seed, land, options);

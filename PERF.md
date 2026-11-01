@@ -41,6 +41,12 @@ Lines add two draw calls (all committed lines share one mesh, the line being dra
 own) and at most 12,288 plus 4,096 preallocated vertices; the crew is one instanced draw.
 The extra draw calls against slice a come mostly from the larger toolbar panel.
 
+## Slice c (2026-11-01)
+
+Not measured yet: the slice c gate ended before a stats read. New draws, only while shown:
+water preview 1, aircraft 3 (body, outline, shadow) plus the water veil 1, hold ring 1,
+ghost hand 2 fills and 14 outline lines, inspect tooltip (one small panel).
+
 Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
 MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
 measured on the deployed site in slice f.

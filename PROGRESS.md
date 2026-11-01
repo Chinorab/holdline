@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 (Paris), slice b done
+Last update: 2026-11-01 (Paris), slice c built, gate partly run
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,9 +8,10 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice b is done and committed on branch `001-tabletop-wildfire`. Next: slice c, T049 to T059
-in `specs/001-tabletop-wildfire/tasks.md` (water drop, inspect, backburn first cut, unlocks,
-Day 0 by doing, ghost hand).
+Slice c is built and committed. Two gate items remain (T059): the water drop by gaze on the
+Meta VR Glasses profile (set `dev.emulator.device` to `metaVRGlasses` in iwsdk.config.json,
+gaze `look_at` with the headset, pinch with a hand) and a render stats read for PERF.md.
+Then slice d, T060 onward.
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -25,8 +26,13 @@ Day 0 by doing, ghost hand).
       crews dig in order and cut the trees, budget meter, toolbar with locked tools, result
       card with km of line, resume after reload; gate in the emulator, replay identical.
 
+- [x] Slice c (T049 to T058): water drop with aircraft and cooldown, inspect tooltip,
+      backburn first cut (hold 1 s on a dug line), unlocks by fires played with one intro
+      per tool, Day 0 by doing (wind, slope, breaks, guided first line) with the ghost hand,
+      Day 0 button on the pause card. Gate: Day 0 contained at 118 s of game time.
+
 ## Next
-- [ ] Slice c (T049 to T059), then d, e, f as in tasks.md
+- [ ] Finish the slice c gate (T059), then slices d, e, f as in tasks.md
 - [ ] Slice e items noted during slice a: compact Glasses layout (briefing card top is
       cut in the glasses view), Scan table button, cold start check
 
@@ -67,3 +73,8 @@ Day 0 by doing, ghost hand).
 - Rendering into a render target skips the sRGB conversion unless the target texture's
   colorSpace is SRGBColorSpace.
 - A UIKit text that grows after layout can wrap: give button labels a fixed width.
+- An InstancedMesh that never got setColorAt has no instanceColor: the prop shader fails.
+- The emulator runs far below real time in the pane: gate scripts wait on game state
+  (status fields), never on wall clock; report game seconds (`playSeconds`).
+- The browser pane needs the session window open: if the window is closed, the world never
+  finishes loading.

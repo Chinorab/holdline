@@ -2,7 +2,7 @@
 // sends inputs to the worker, records what it accepts and keeps the run saved.
 
 import { TICK_HZ } from '../sim/day.js';
-import type { DayConfig, Input, RunKind } from '../sim/types.js';
+import type { DayConfig, Input, RunKind, Tool } from '../sim/types.js';
 import type { ProgressStore, StoredRun } from '../store/progress.js';
 import { SimClient, type BaselineInfo, type InputReply, type OutcomeInfo, type ReadyInfo } from '../worker/client.js';
 import type { FrameMessage } from '../worker/protocol.js';
@@ -37,6 +37,7 @@ export class Session {
     readonly dayId: string,
     readonly kind: RunKind,
     public runId: string,
+    private readonly tools: Tool[] = ['dig'],
   ) {
     this.client.onFrame = (frame) => {
       this.frame = frame;
@@ -52,11 +53,17 @@ export class Session {
   async start(): Promise<ReadyInfo> {
     const ready = await this.client.init(this.dayId, {
       slowerFire: this.store.settings.slowerFire,
-      tools: ['dig'],
+      tools: this.tools,
     });
     this.ready = ready;
     this.day = ready.day;
     return ready;
+  }
+
+  /** Seconds until the water drop is ready again. */
+  get waterCooldownLeft(): number {
+    const f = this.frame;
+    return f ? Math.max(0, (f.waterReadyAt - f.tick) / TICK_HZ) : 0;
   }
 
   /** Seconds of live time left. */
@@ -129,13 +136,14 @@ export class Session {
     const info = await this.client.resolve();
     this.outcome = info;
     this.running = false;
-    this.store.clearRun();
+    if (this.kind !== 'tutorial') this.store.clearRun();
     this.onOutcome(info);
   }
 
   persist(): void {
     this.sinceSave = 0;
-    if (this.outcome) return;
+    // Day 0 is never resumed: a reload starts it again.
+    if (this.outcome || this.kind === 'tutorial') return;
     this.store.saveRun({
       version: 1,
       runId: this.runId,

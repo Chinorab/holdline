@@ -16,9 +16,12 @@ import {
 import { H, N, W } from '../sim/grid.js';
 import { CellState } from '../sim/types.js';
 import type { FrameMessage, LandscapeTransfer } from '../worker/protocol.js';
+import { Aircraft, WaterPreview } from './aircraft.js';
 import { Crew } from './crew.js';
 import { BoardDims } from './dims.js';
 import { Flames } from './flames.js';
+import { GhostHand } from './ghost-hand.js';
+import { HoldRing } from './hold-ring.js';
 import { Lines } from './lines.js';
 import { color } from './palette.js';
 import { Props, createPropMaterial } from './props.js';
@@ -37,6 +40,13 @@ export class Board {
   readonly vane = new WindVane();
   readonly lines = new Lines(this.dims, () => this.cellHeight);
   readonly crew = new Crew(this.dims, () => this.cellHeight);
+  readonly waterPreview = new WaterPreview(this.dims, () => this.cellHeight);
+  readonly aircraft = new Aircraft(this.dims, () => this.cellHeight);
+  readonly holdRing = new HoldRing();
+  readonly ghost = new GhostHand();
+  /** Landscape elevation in meters (for inspect), and which landscape is built. */
+  elevationM: Float32Array | null = null;
+  landscapeKey = '';
   /** Holds the terrain mesh: the entity players draw on. */
   readonly surface = new Group();
   readonly outline: Mesh;
@@ -65,6 +75,7 @@ export class Board {
     this.propMaterial = createPropMaterial(this.dims.plinthM);
     this.surface.name = 'DrawSurface';
     this.root.add(this.surface, this.lines.root, this.crew.root, this.flames.mesh, this.smoke.mesh, this.vane.root);
+    this.root.add(this.waterPreview.mesh, this.aircraft.root, this.holdRing.mesh, this.ghost.root);
     this.outline = this.makeOutline();
     this.outline.visible = false;
     this.root.add(this.outline);
@@ -90,7 +101,31 @@ export class Board {
     return mesh;
   }
 
-  setLandscape(land: LandscapeTransfer): void {
+  /** Is a fractional cell coordinate on the board? */
+  inside(cellX: number, cellY: number): boolean {
+    return cellX >= -0.5 && cellY >= -0.5 && cellX <= W - 0.5 && cellY <= H - 0.5;
+  }
+
+  /** Same landscape, fresh fire: everything a run leaves on the board is cleared. */
+  resetFire(): void {
+    this.textures.setFuel(this.fuel);
+    this.props?.reset();
+    this.cellState.fill(0);
+    this.lastStep = -1;
+    this.lapseStep = -1;
+    this.burningCount = 0;
+    this.flames.mesh.count = 0;
+    this.smoke.clear();
+    this.lines.clear();
+    this.crew.reset();
+    this.aircraft.reset();
+    this.waterPreview.hide();
+    this.holdRing.hide();
+  }
+
+  setLandscape(land: LandscapeTransfer, key = ''): void {
+    this.landscapeKey = key;
+    this.elevationM = land.elevationM;
     if (this.terrain) {
       this.surface.remove(this.terrain);
       this.terrain.geometry.dispose();
@@ -120,6 +155,9 @@ export class Board {
     this.smoke.clear();
     this.lines.clear();
     this.crew.reset();
+    this.aircraft.reset();
+    this.waterPreview.hide();
+    this.holdRing.hide();
   }
 
   /** 0: flat paper; 1: full relief. The layers stack up from the bottom. */
@@ -208,6 +246,8 @@ export class Board {
     this.flames.update(this.time, camWorld);
     this.vane.update(step);
     this.crew.update(step);
+    this.aircraft.update(step);
+    this.ghost.update(dt);
     if (step > 0) this.smoke.update(step, this.burning, this.burningCount, this.cellHeight);
   }
 }

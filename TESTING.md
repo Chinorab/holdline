@@ -7,7 +7,7 @@ What ran, where, and what still needs a headset. Updated at each slice gate.
 | Suite | Command | Slice a result |
 |-------|---------|----------------|
 | Typecheck (app and tests) | `npm run typecheck` | clean |
-| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests pass |
+| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests pass |
 | Production build and dist check | `npm run build` | builds; `scripts/check-dist.mjs` ok (no agent notes, no source maps, every library URL explained) |
 
 The fire model tests cover: same day and inputs give the same state hash at every tick;
@@ -74,6 +74,30 @@ and posts the JPEG to a local receiver on 127.0.0.1:8790 started by hand for the
 | Console | Quest 3, full gate in one page load | in page error collector | zero errors |
 
 Screenshots: `artifacts/slice-b/` (local, not committed).
+
+## Emulator (slice c)
+
+Same environment. Helper: `scripts/emulator/slice-c.browser.js` (`day0`, `waterDrop`,
+`backburnHold`, `inspectRest`). The emulator ran well below real time in the pane, so times
+are given in game seconds (frame time capped at 0.25 s, the same cap as the fire clock);
+on a headset at 72 Hz game time is real time.
+
+| Scenario | Profile, room | How | Result |
+|----------|---------------|-----|--------|
+| Day 0 from fresh storage | Quest 3 controllers, home_office | storage cleared, enter, place on the desk, controller ray pinch on each patch, guided line drawn with the ray | wind, slope, breaks beats each lit by the pinch; line beat contained, both houses standing; Contained at 118 s of game time after entering (328 s of wall time in the pane); then Day 1 brief with dig and water, completed fires 1 |
+| Ghost hand | Quest 3 | status and stills | shown on every Day 0 prompt and on each unlock intro; stops when the beat starts or a stroke begins |
+| Water drop intro | Quest 3 | second fire, plan phase | water drop selected, ghost hand drag, strip "Look, pinch, drag", intro saved once |
+| Water drop by hand ray | Quest 3 hands | right hand ray: pinch at one cell, drag 12 cells, release | aircraft crosses, drop accepted when it reaches the strip, wet strip shown, cooldown 20 s on the button |
+| Inspect | Quest 3 controllers | ray resting on one cell for 3 s | tooltip for exactly that cell (fuel, slope in degrees) |
+| Backburn intro and hold | Quest 3 controllers | third fire (practice counts): line drawn, fire started, Backburn selected, ray pinch held 2.5 s on a dug cell | ring fills, input accepted, 12 controlled cells, all on the side facing the fire |
+| Console | Quest 3, Day 0 and the tools in one page load | in page error collector | zero errors after the fix below |
+
+Found and fixed during the gate: on a board without shrubs (Day 0) the instanced shrub mesh
+had no color attribute and its shader failed to compile; Day 0's auto start counted from
+entering the phase instead of from the moment the beat was ready.
+
+Not run yet: the water drop by gaze on the Meta VR Glasses profile. The session window was
+closed during the gate, and a hidden browser pane gets no frames.
 
 ## Needs a headset
 

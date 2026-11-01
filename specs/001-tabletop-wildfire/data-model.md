@@ -18,7 +18,7 @@ Pure data shared by the simulation (worker and tests) and the game. Grid indices
 
 | Field | Type | Rule |
 |-------|------|------|
-| `dayId` | string | `YYYY-MM-DD` local date, or `day0` |
+| `dayId` | string | `YYYY-MM-DD` local date, or a Day 0 beat (`day0-wind`, `day0-slope`, `day0-breaks`, `day0-line`) |
 | `dayNumber` | int | days since 2026-11-01 plus 1; 0 for `day0` |
 | `seed` | uint32 | hash("holdline", dayId) |
 | `wind` | `{ speedMs, dirDeg }` | speed 2 to 12 m/s; direction the wind blows toward |
@@ -70,7 +70,7 @@ nothing leaves `unburnable` or `burned`.
 |------|--------|------------|
 | `dig` | `tick`, `lineId`, `cells: int[]` (ordered, 4 connected) | tool available, cells within budget left, skips water, rock and road |
 | `water` | `tick`, `startCell`, `dirDeg`, `lengthCells` 24, `widthCells` 3 | tool available, `tick >= waterReadyAt`; cooldown 120 ticks (20 s) |
-| `backburn` | `tick`, `lineId`, `cell`, `side: 1 or -1` | tool available, cell on a dug line, ignites up to 12 cells on that side |
+| `backburn` | `tick`, `lineId`, `cell`, `side: 0..3` (neighbor direction toward the fire: east, near, west, far) | tool available, cell on a dug line, not contained; from that cell, the nearest line cells (breadth first) light the fuel on that side, up to 12 cells |
 | `pause` / `resume` | `tick` | bookkeeping only, no effect on the fire |
 
 Order: inputs apply at the start of their tick, in recorded order. An input that fails

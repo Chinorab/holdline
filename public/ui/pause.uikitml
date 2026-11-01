@@ -43,14 +43,14 @@
   }
   .row {
     flex-direction: row;
-    gap: 36px;
+    gap: 20px;
   }
   .secondary {
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 14px;
-    width: 340px;
+    width: 300px;
     height: 96px;
     border-radius: 6px;
     background-color: #e4e2dd;
@@ -65,7 +65,7 @@
     color: #1d1c1a;
   }
   .secondary-label {
-    font-size: 38px;
+    font-size: 34px;
     font-weight: 700;
     color: #1d1c1a;
   }
@@ -80,6 +80,10 @@
     <div id="btn-place" class="secondary">
       <Move class="secondary-icon"></Move>
       <span class="secondary-label">Place again</span>
+    </div>
+    <div id="btn-day0" class="secondary">
+      <GraduationCap class="secondary-icon"></GraduationCap>
+      <span id="day0-label" class="secondary-label">Day 0</span>
     </div>
     <div id="btn-about" class="secondary">
       <Info class="secondary-icon"></Info>

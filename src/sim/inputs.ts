@@ -18,7 +18,7 @@ export function waterStripCells(startCell: number, dirDeg: number, lengthCells: 
   const half = (widthCells - 1) / 2;
   const seen = new Set<number>();
   const cells: number[] = [];
-  for (let t = 0; t < lengthCells * 2; t++) {
+  for (let t = 0; t <= (lengthCells - 1) * 2; t++) {
     const along = t / 2;
     for (let w = 0; w <= (widthCells - 1) * 2; w++) {
       const across = w / 2 - half;

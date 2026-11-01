@@ -55,6 +55,8 @@ export interface DayConfig {
   spreadPeriodTicks: number;
   tools: Tool[];
   spotting: boolean;
+  /** Ticks a crew spends on one cell; Day 0 digs faster. Defaults to TUNING.crewTicksPerCell. */
+  crewTicksPerCell?: number;
 }
 
 export interface House {
@@ -77,9 +79,12 @@ export interface Landscape {
 export type Input =
   | { kind: 'dig'; tick: number; lineId: number; cells: number[] }
   | { kind: 'water'; tick: number; startCell: number; dirDeg: number; lengthCells: number; widthCells: number }
-  | { kind: 'backburn'; tick: number; lineId: number; cell: number; side: 1 | -1 }
+  /** `side`: the neighbor direction that faces the fire, 0 east, 1 near (+y), 2 west, 3 far. */
+  | { kind: 'backburn'; tick: number; lineId: number; cell: number; side: BackburnSide }
   | { kind: 'pause'; tick: number }
   | { kind: 'resume'; tick: number };
+
+export type BackburnSide = 0 | 1 | 2 | 3;
 
 export type InputRejection = 'budget' | 'cooldown' | 'locked' | 'invalid';
 
@@ -92,6 +97,7 @@ export type SimEvent =
   | { type: 'contained'; tick: number; step: number }
   | { type: 'dug'; tick: number; cell: number }
   | { type: 'water'; tick: number; cells: number }
+  | { type: 'backburn'; tick: number; cells: number }
   | { type: 'burnout'; tick: number; step: number };
 
 export interface OutcomeSide {

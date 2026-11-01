@@ -19,4 +19,5 @@ export default defineAssets({
   'pause-panel': uikitml('pause.uikitml', 'Pause'),
   'about-panel': uikitml('about.uikitml', 'About'),
   'result-panel': uikitml('result.uikitml', 'Result'),
+  'inspect-panel': uikitml('inspect.uikitml', 'Inspect'),
 });

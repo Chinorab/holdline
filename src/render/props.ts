@@ -206,6 +206,8 @@ export class Props {
     });
     this.houses.count = houses.length;
     for (const mesh of [this.trees, this.shrubs, this.houses]) {
+      // A board without shrubs (Day 0) still needs the color attribute the shader reads.
+      if (!mesh.instanceColor) mesh.setColorAt(0, UNBURNED);
       mesh.frustumCulled = false;
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

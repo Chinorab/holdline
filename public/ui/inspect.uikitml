@@ -1,0 +1,45 @@
+<!--
+  Inspect tooltip: the fuel, the slope and Wet, above the spot under the gaze or ray.
+  Texts set from src/input/inspect.ts.
+-->
+<style>
+  .tip {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    width: 480px;
+    height: 120px;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-radius: 8px;
+    border-width: 3px;
+    border-color: #1d1c1a;
+    background-color: #f3f1ed;
+  }
+  .fuel {
+    font-size: 40px;
+    font-weight: 800;
+    color: #1d1c1a;
+  }
+  .slope {
+    font-size: 36px;
+    font-weight: 600;
+    color: #5d5a56;
+  }
+  .wet {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-radius: 4px;
+    font-size: 32px;
+    font-weight: 700;
+    color: #f3f1ed;
+    background-color: #2d5e8b;
+  }
+</style>
+<div class="tip">
+  <span id="inspect-fuel" class="fuel">Forest</span>
+  <span id="inspect-slope" class="slope">12° slope</span>
+  <span id="inspect-wet" class="wet">Wet</span>
+</div>

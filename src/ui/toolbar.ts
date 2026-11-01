@@ -10,7 +10,9 @@ const TOOLS: Tool[] = ['dig', 'water', 'backburn'];
 
 export class Toolbar {
   selected: Tool | null = 'dig';
+  onSelect: (tool: Tool | null) => void = () => {};
   private unlocked: Tool[] = ['dig'];
+  private shownCooldown = -1;
   private shownLeft = -1;
   private shownTotal = -1;
 
@@ -30,13 +32,24 @@ export class Toolbar {
   setUnlocked(tools: Tool[]): void {
     this.unlocked = tools;
     if (this.selected && !tools.includes(this.selected)) this.selected = tools[0] ?? null;
+    if (!this.selected && tools.length > 0) this.selected = tools[0];
     this.render();
+    this.onSelect(this.selected);
   }
 
-  private select(tool: Tool): void {
+  select(tool: Tool): void {
     if (!this.unlocked.includes(tool)) return;
     this.selected = tool;
     this.render();
+    this.onSelect(tool);
+  }
+
+  /** Water drop cooldown: the seconds left replace the label until it is ready. */
+  setCooldown(seconds: number): void {
+    const shown = Math.ceil(seconds);
+    if (shown === this.shownCooldown) return;
+    this.shownCooldown = shown;
+    this.panel.setText('label-water', shown > 0 ? TOOL.cooldown(shown) : TOOL.water);
   }
 
   /** Crew line left (cells), out of the day's total; `planned` is the stroke being drawn. */
