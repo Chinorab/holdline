@@ -3,7 +3,7 @@
 // hue), burned ash, wet hatch and a slow grass sway in the wind.
 
 import { DoubleSide, ShaderMaterial, Vector2, type Color, type Texture } from '@iwsdk/core';
-import { color } from './palette.js';
+import { HEX, HEX_HIGH_CONTRAST, color, type PaletteKey } from './palette.js';
 
 const vertexShader = /* glsl */ `
 attribute float aLayer;
@@ -35,6 +35,8 @@ uniform float uTime;
 uniform float uPlinth;
 uniform float uLayerM;
 uniform vec2 uWind;
+uniform float uInkGain;
+uniform float uEdgeW;
 uniform float uWindStrength;
 uniform vec3 cGrass, cBrush, cForest, cRock, cWater, cRoad, cYard;
 uniform vec3 cInk, cGraphite, cCard, cBoard, cFire, cCore, cBurned, cAsh, cWet;
@@ -76,7 +78,7 @@ void main() {
   if (b.b > w) { w = b.b; c = cYard; }
   // Ink casing along roads and river banks.
   float casing = max(1.0 - smoothstep(0.08, 0.2, abs(b.g - 0.42)), 1.0 - smoothstep(0.08, 0.2, abs(b.r - 0.42)));
-  c = mix(c, cInk, casing * 0.75 * step(0.2, max(b.r, b.g)));
+  c = mix(c, cInk, min(1.0, casing * 0.75 * uInkGain) * step(0.2, max(b.r, b.g)));
   // Grass sway: faint bands drifting downwind.
   float sway = sin(dot(vPos.xz, uWind) * 240.0 - uTime * 2.6);
   c *= 1.0 + a.r * 0.035 * uWindStrength * sway;
@@ -87,7 +89,7 @@ void main() {
   if (riser > 0.0) {
     float topLayer = ceil(vLayer - 0.01);
     float index = mod(topLayer, 5.0) < 0.5 ? 1.0 : 0.0;
-    c = mix(c, cInk, riser * mix(0.34, 0.62, index));
+    c = mix(c, cInk, min(1.0, riser * mix(0.34, 0.62, index) * uInkGain));
   }
 
   vec4 f = mix(texture2D(uFirePrev, vUv), texture2D(uFire, vUv), uBlend);
@@ -96,7 +98,7 @@ void main() {
   c = mix(c, ash, burned);
   float fire = smoothstep(0.42, 0.58, f.r);
   c = mix(c, mix(cFire, cCore, smoothstep(0.35, 0.95, f.a)), fire);
-  float edge = 1.0 - smoothstep(0.05, 0.13, abs(f.r - 0.5));
+  float edge = 1.0 - smoothstep(0.05, uEdgeW, abs(f.r - 0.5));
   c = mix(c, cInk, edge * 0.92);
   float stripe = step(0.55, fract((vPos.x - vPos.z) * 160.0));
   c = mix(c, cWet, f.b * stripe * 0.7);
@@ -126,6 +128,8 @@ export function createTerrainMaterial(textures: TerrainTextures, plinthM: number
     uPlinth: { value: plinthM },
     uLayerM: { value: layerM },
     uWind: { value: new Vector2(1, 0) },
+    uInkGain: { value: 1 },
+    uEdgeW: { value: 0.13 },
     uWindStrength: { value: 0 },
     cGrass: { value: color('grass') },
     cBrush: { value: color('brush') },
@@ -145,4 +149,21 @@ export function createTerrainMaterial(textures: TerrainTextures, plinthM: number
     cWet: { value: color('wet') },
   };
   return new ShaderMaterial({ uniforms, vertexShader, fragmentShader, side: DoubleSide });
+}
+
+/** Terrain color uniforms and the palette entry each one takes. */
+const PALETTE_UNIFORMS: [string, PaletteKey][] = [
+  ['cGrass', 'grass'], ['cBrush', 'brush'], ['cForest', 'forest'], ['cRock', 'rock'], ['cWater', 'water'],
+  ['cRoad', 'road'], ['cYard', 'grass'], ['cInk', 'ink'], ['cBurned', 'burned'],
+];
+
+/**
+ * High contrast: deeper fuels, lighter rock and water, contour and casing ink about 1.6
+ * times stronger, and a wider ink edge on the fire front.
+ */
+export function setTerrainContrast(material: ShaderMaterial, high: boolean): void {
+  const hex = high ? HEX_HIGH_CONTRAST : HEX;
+  for (const [name, key] of PALETTE_UNIFORMS) (material.uniforms[name].value as Color).set(hex[key]);
+  material.uniforms.uInkGain.value = high ? 1.6 : 1;
+  material.uniforms.uEdgeW.value = high ? 0.2 : 0.13;
 }

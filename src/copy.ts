@@ -122,6 +122,27 @@ export const JOURNAL = {
   notSaved: 'Progress not saved',
 } as const;
 
+export const SETTINGS = {
+  title: 'Settings',
+  highContrast: 'High contrast',
+  oneHand: 'One hand',
+  glassesView: 'Glasses view',
+  slowerFire: 'Slower fire',
+  sound: 'Sound',
+  captions: 'Captions',
+  dwellSelect: 'Dwell select',
+  headPointer: 'Head pointer',
+  boardSize: 'Board size',
+  boardHeight: 'Board height',
+  turn: 'Turn',
+  on: 'On',
+  off: 'Off',
+  cm: (n: number) => `${n} cm`,
+  day0: 'Day 0',
+  close: 'Close',
+  nextFire: 'From the next fire',
+} as const;
+
 export const INSPECT = {
   slope: (degrees: number) => `${Math.round(degrees)}° slope`,
   wet: 'Wet',
@@ -143,7 +164,7 @@ export function allCopy(): { key: string; text: string; instruction: boolean }[]
       for (const [k, v] of Object.entries(value)) visit(`${key}.${k}`, v, instruction);
   };
   const groups: Record<string, unknown> = {
-    BRAND, WEB, BRIEF, PAUSE, RESULT, ABOUT, CAPTION, STATUS, TOOL, JOURNAL, INSPECT, FUEL_NAMES,
+    BRAND, WEB, BRIEF, PAUSE, RESULT, ABOUT, CAPTION, STATUS, TOOL, JOURNAL, SETTINGS, INSPECT, FUEL_NAMES,
   };
   for (const [k, v] of Object.entries(groups)) visit(k, v, false);
   visit('INSTRUCTION', INSTRUCTION, true);

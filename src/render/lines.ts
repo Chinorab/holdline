@@ -153,6 +153,7 @@ class RibbonBuffer {
 
 interface LineRecord {
   cells: number[];
+  fire: { x: number; y: number };
   firstVert: number;
   vertCount: number;
   /** Cells from the start already dug (or given up because they burned). */
@@ -167,6 +168,7 @@ export class Lines {
   private readonly lines: LineRecord[] = [];
   private readonly pts: number[] = [];
   private readonly tmp: number[] = [];
+  private widthScale = 1;
 
   constructor(
     private readonly dims: BoardDims,
@@ -184,6 +186,22 @@ export class Lines {
     this.root.add(lines, preview);
   }
 
+  /** High contrast: lines twice as wide; existing lines are rebuilt. */
+  setWidthScale(scale: number): void {
+    if (scale === this.widthScale) return;
+    this.widthScale = scale;
+    const old = this.lines.splice(0, this.lines.length);
+    this.committed.reset();
+    for (const line of old) {
+      const first = this.committed.verts;
+      if (!this.build(this.committed, line.cells, line.fire)) continue;
+      const record = { ...line, firstVert: first, vertCount: this.committed.verts - first };
+      for (let v = first; v < first + record.vertCount; v++) this.committed.dug[v] = this.committed.k[v] < record.prefix - 0.5 ? 1 : 0;
+      this.lines.push(record);
+    }
+    this.committed.commit();
+  }
+
   clear(): void {
     this.lines.length = 0;
     this.committed.reset();
@@ -194,7 +212,7 @@ export class Lines {
   add(cells: number[], fire: { x: number; y: number }): void {
     const first = this.committed.verts;
     if (!this.build(this.committed, cells, fire)) return;
-    this.lines.push({ cells, firstVert: first, vertCount: this.committed.verts - first, prefix: 0 });
+    this.lines.push({ cells, fire, firstVert: first, vertCount: this.committed.verts - first, prefix: 0 });
     this.committed.commit();
   }
 
@@ -289,8 +307,9 @@ export class Lines {
       const z = this.dims.zOf(cy - 0.5);
       const cell = Math.min(N - 1, Math.max(0, Math.floor(cy) * W + Math.floor(cx)));
       const y = heights[cell] + LIFT_M;
-      const left = buf.vertex(x + nx * HALF_WIDTH_M, y, z + nz * HALF_WIDTH_M, k, arc, 1, 0);
-      const right = buf.vertex(x - nx * HALF_WIDTH_M, y, z - nz * HALF_WIDTH_M, k, arc, -1, 0);
+      const hw = HALF_WIDTH_M * this.widthScale;
+      const left = buf.vertex(x + nx * hw, y, z + nz * hw, k, arc, 1, 0);
+      const right = buf.vertex(x - nx * hw, y, z - nz * hw, k, arc, -1, 0);
       if (prevLeft >= 0) buf.quad(prevLeft, prevRight, left, right);
       prevLeft = left;
       prevRight = right;
@@ -298,8 +317,8 @@ export class Lines {
         nextTick += TICK_EVERY_M;
         const sx = nx * side;
         const sz = nz * side;
-        const base = HALF_WIDTH_M * 0.6;
-        const tip = HALF_WIDTH_M + TICK_LENGTH_M;
+        const base = hw * 0.6;
+        const tip = hw + TICK_LENGTH_M;
         const v0 = buf.vertex(x + sx * base - dx * TICK_HALF_WIDTH_M, y, z + sz * base - dz * TICK_HALF_WIDTH_M, k, arc, 0, 1);
         const v1 = buf.vertex(x + sx * base + dx * TICK_HALF_WIDTH_M, y, z + sz * base + dz * TICK_HALF_WIDTH_M, k, arc, 0, 1);
         const v2 = buf.vertex(x + sx * tip - dx * TICK_HALF_WIDTH_M, y, z + sz * tip - dz * TICK_HALF_WIDTH_M, k, arc, 0, 1);

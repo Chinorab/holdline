@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 (Paris), slice d done
+Last update: 2026-11-01 (Paris), slice e in progress
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,8 +8,22 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice d is done. Next: slice e, T069 onward in `specs/001-tabletop-wildfire/tasks.md`
-(settings, accessibility, Glasses layout, Scan table, cold start).
+Slice e in progress (work in progress commit). Done so far, not wired into the game yet:
+public/ui/settings.uikitml + src/ui/settings.ts (toggles, steppers, Day 0, Close), copy
+SETTINGS, pause card button Settings (replaces Day 0: btn-settings, handler not wired yet,
+so the pause card's Day 0 path is gone until settings are wired), high contrast in
+src/render/terrain-material.ts (setTerrainContrast) and Lines.setWidthScale, and
+scripts/cvd-check.mjs.
+
+The CVD check FAILS today: the fire core (#FFE7B7) is too close to grass in every view
+(dE under 11) and in grayscale the fire is close to water (dE 12, ratio 1.48). Decide the
+fix (darker core or stronger ink edge counted in the check) before going on.
+
+Then: wire settings into phases.ts (open from pause, apply each toggle), board size,
+height and turn (T071, edge controls panel in one hand mode), slower fire plan 45 s and
+result note (T072), dwell select and head pointer (T073: own head ray; IWSDK gaze has no
+head fallback), Glasses view mask 37/37/25/43 deg and compact layout (T074), fit check
+(T075), 72 Hz and foveation (T076), gate (T077).
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,

@@ -81,9 +81,9 @@
       <Move class="secondary-icon"></Move>
       <span class="secondary-label">Place again</span>
     </div>
-    <div id="btn-day0" class="secondary">
-      <GraduationCap class="secondary-icon"></GraduationCap>
-      <span id="day0-label" class="secondary-label">Day 0</span>
+    <div id="btn-settings" class="secondary">
+      <Settings class="secondary-icon"></Settings>
+      <span id="settings-label" class="secondary-label">Settings</span>
     </div>
     <div id="btn-about" class="secondary">
       <Info class="secondary-icon"></Info>

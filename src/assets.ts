@@ -22,4 +22,5 @@ export default defineAssets({
   'inspect-panel': uikitml('inspect.uikitml', 'Inspect'),
   'journal-panel': uikitml('journal.uikitml', 'Journal'),
   'captions-panel': uikitml('captions.uikitml', 'Captions'),
+  'settings-panel': uikitml('settings.uikitml', 'Settings'),
 });
