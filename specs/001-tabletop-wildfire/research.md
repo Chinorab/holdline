@@ -29,11 +29,18 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   `p_s = exp(a theta_s)`, slope angle from the elevation difference over the cell distance
   (diagonal distance for diagonal neighbors). Starting constants from the brief:
   p_h 0.58, c1 0.045, c2 0.131, a 0.078 (theta_s in degrees, V in m/s).
-- Status: NOT yet verified. The paper is paywalled; two open papers that build on it
-  (arXiv 2403.08817 and CET vol. 36) were fetched but do not print the constants in text.
-  Task T010 verifies them against the full text (the user may supply the PDF) before any
-  public text cites them. Until then DEVPOST and the About panel say "inspired by" and cite
-  no number.
+- Status (2026-11-01, T010): the four constants are confirmed through an open access,
+  peer reviewed secondary source: Freire and DaCamara (2019), Natural Hazards and Earth
+  System Sciences 19:169 to 179, Section 2.5: "with p_0 = 0.58, a_s = 0.078, c_1 = 0.045 and
+  c_2 = 0.131", parameters "set according to Alexandridis et al. (2008)". The primary paper's
+  full text is still paywalled, so public copy cites the model as "after Alexandridis et al.
+  (2008)" and the values as reported by Freire and DaCamara (2019). The slope sign
+  (uphill positive, from the burning cell to its neighbor) is our convention, pinned by
+  tests/sim/spread.test.ts; diagonal neighbors use sqrt(2) times the cell size.
+- Game time scale (ours): p_h is multiplied by `TUNING.spreadScale` (0.25) so a fire takes
+  about a minute to reach the town on a typical day (tests/sim/pacing.test.ts: over 60 dates
+  with no action, houses are lost on 53 days, first loss after 57 s median, 43 s at the 10th
+  percentile).
 - Game tunings (documented as ours, not the paper's): the paper's vegetation classes
   (agricultural, thickets, pine) map to game fuels with per fuel burn durations, so grass
   catches fast and burns out fast, forest catches slowly and burns long ("slow, then
@@ -203,3 +210,33 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   static site on Vercel (`holdline` project if the name is free), HTTPS by default. Last
   production deploy before 2026-11-18 20:00 UTC, then no change until after 2026-12-11.
   `public/**/AGENTS.md` files are kept out of `dist/`.
+
+## Slice a verification (2026-11-01, T009)
+
+Checked with hz-quest-verify-first (`vr_docs_search`, `vr_docs_get_page`), `npx iwsdk reference
+search` and the installed 1.1.0-rc.2 packages.
+
+- Meta docs, "Mixed Reality Support in Browser": persistent anchors via
+  `anchor.requestPersistentHandle()` and `session.restorePersistentAnchor(handle)`, at most 8
+  per site, not in private mode, deleted with the site's history. Planes are horizontal or
+  vertical rectangles, arrive 2 to 3 s after session start; `session.initiateRoomCapture()`
+  may run once per session when none exist.
+- IWSDK planes: `SceneUnderstandingSystem` adds a `Mesh` per plane directly to the scene at the
+  plane pose (plane space: y is the normal) and an entity with `XRPlane { _plane }` (raw
+  `XRPlane`, with `orientation`, `polygon`, `semanticLabel` when the browser provides it).
+  Meshes: `XRMesh { semanticLabel, isBounded3D, min, max, dimensions }` at the mesh pose.
+- Spatial panels at runtime: `PanelUI { config: url }` on a transform entity; the system adds
+  `PanelDocument { document }`, a `UIKitDocument` with `getElementById`, `querySelector` and
+  `setTargetDimensions(widthM, heightM)`. Panels need `RayInteractable` (rays and gaze) and
+  `PokeInteractable` (touch) for clicks.
+- Systems reach the raw WebXR frame, session and reference space through `this.renderer.xr`
+  (three.js WebXRManager), which the raw anchors service uses.
+- Input profiles: the profile JSON is bundled in `@iwsdk/xr-input` (no request), but hand and
+  controller models load from jsDelivr through `AssetManager.loadGLTF`. Every load goes
+  through the static `AssetManager.loadingManager`, so `setURLModifier` can point those URLs
+  at files hosted with the game (T025).
+- UIKit fonts: slice a uses the Horizon kit font; the local MSDF fonts are verified with the
+  landing page fonts in slice f, as the plan's risk table allows.
+- Still to verify at their slice start: pointer events with hit points and capture during a
+  drag (slice b), hand joint access for near drawing (slice b), AudioSource with generated
+  buffers (slice d), custom ray pointer for the head pointer (slice e).
