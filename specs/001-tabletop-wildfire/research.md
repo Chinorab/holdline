@@ -104,8 +104,10 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   stay under 8). Optional "Scan table" button on the fallback calls `initiateRoomCapture`.
 - Emulator: IWER rooms (13 listed in the config schema, for example living_room, home_office,
   kitchen, office_small, bedroom) carry planes and meshes for placement tests. Whether IWER
-  emulates persistent handles is verified at slice a start; if not, that path is unit tested
-  with a fake session and marked as not verifiable without a headset in TESTING.md.
+  emulates persistent handles was checked in slice a: it does (a second entry restored the
+  board at the same pose); the service is also unit tested with a fake session. Legacy room
+  ids (`living_room`, `office_small`, `meeting_room`, `music_room`, `office_large`) now load
+  other rooms; use `sunlit_living_room`, `home_office`, `kitchen`, `open_office`, `bedroom`.
 
 ## R7. Input (verified, details at slice start)
 

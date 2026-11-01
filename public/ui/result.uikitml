@@ -1,0 +1,131 @@
+<!--
+  Result card on the panel stand: your run against the same fire with no action.
+-->
+<style>
+  .card {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    width: 1200px;
+    height: 750px;
+    padding-left: 64px;
+    padding-right: 64px;
+    border-radius: 8px;
+    background-color: #f3f1ed;
+  }
+  .day {
+    font-size: 38px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
+  .columns {
+    flex-direction: row;
+    gap: 40px;
+  }
+  .column {
+    flex-direction: column;
+    gap: 10px;
+    width: 470px;
+    padding-top: 26px;
+    padding-bottom: 26px;
+    padding-left: 30px;
+    padding-right: 30px;
+    border-radius: 8px;
+    background-color: #e4e2dd;
+  }
+  .you {
+    background-color: #1d1c1a;
+  }
+  .head {
+    font-size: 38px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
+  .head-you {
+    color: #cac7c2;
+  }
+  .big {
+    font-size: 76px;
+    font-weight: 800;
+    color: #1d1c1a;
+  }
+  .big-you {
+    color: #f3f1ed;
+  }
+  .small {
+    font-size: 38px;
+    font-weight: 600;
+    color: #1d1c1a;
+  }
+  .small-you {
+    color: #f3f1ed;
+  }
+  .row {
+    flex-direction: row;
+    gap: 30px;
+  }
+  .button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 300px;
+    height: 100px;
+    border-radius: 6px;
+    background-color: #e4e2dd;
+    cursor: pointer;
+  }
+  .button:hover {
+    background-color: #cac7c2;
+  }
+  .button-dark {
+    background-color: #1d1c1a;
+  }
+  .button-dark:hover {
+    background-color: #45423e;
+  }
+  .button-icon {
+    width: 38px;
+    height: 38px;
+    color: #1d1c1a;
+  }
+  .button-icon-dark {
+    color: #f3f1ed;
+  }
+  .button-label {
+    font-size: 40px;
+    font-weight: 700;
+    color: #1d1c1a;
+  }
+  .button-label-dark {
+    color: #f3f1ed;
+  }
+</style>
+<div class="card">
+  <span id="result-day" class="day">Day 1</span>
+  <div class="columns">
+    <div class="column you">
+      <span id="you-head" class="head head-you">You</span>
+      <span id="you-houses" class="big big-you">6 of 6</span>
+      <span id="you-houses-label" class="small small-you">houses standing</span>
+      <span id="you-burned" class="small small-you">0 ha burned</span>
+    </div>
+    <div class="column">
+      <span id="base-head" class="head">If no one had acted</span>
+      <span id="base-houses" class="big">6 of 6</span>
+      <span id="base-houses-label" class="small">houses standing</span>
+      <span id="base-burned" class="small">0 ha burned</span>
+    </div>
+  </div>
+  <div class="row">
+    <div id="btn-replay" class="button">
+      <RotateCcw class="button-icon"></RotateCcw>
+      <span class="button-label">Replay</span>
+    </div>
+    <div id="btn-done" class="button button-dark">
+      <Check class="button-icon button-icon-dark"></Check>
+      <span class="button-label button-label-dark">Done</span>
+    </div>
+  </div>
+</div>

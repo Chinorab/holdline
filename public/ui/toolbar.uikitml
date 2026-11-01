@@ -1,0 +1,47 @@
+<!--
+  Toolbar along the board's near edge (design canvas: Toolbar on the model edge).
+  Slice a carries Pause; the tools join it in slice b.
+-->
+<style>
+  .bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 36px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    border-radius: 8px;
+    background-color: #f3f1ed;
+  }
+  .tool {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    width: 176px;
+    height: 200px;
+    border-radius: 8px;
+    background-color: #e4e2dd;
+    cursor: pointer;
+  }
+  .tool:hover {
+    background-color: #cac7c2;
+  }
+  .icon {
+    width: 64px;
+    height: 64px;
+    color: #1d1c1a;
+  }
+  .label {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1d1c1a;
+  }
+</style>
+<div class="bar">
+  <div id="btn-pause" class="tool">
+    <Pause class="icon"></Pause>
+    <span class="label">Pause</span>
+  </div>
+</div>

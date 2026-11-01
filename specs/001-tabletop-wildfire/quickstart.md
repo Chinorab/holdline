@@ -28,8 +28,10 @@ npx iwsdk dev status          # wait for browserCommandReady: true
 2. Placement: wait 4 s, `npx iwsdk scene runtime-hierarchy` shows `PlacementHighlight` on the
    chosen surface; pinch with `npx iwsdk xr select --input-json '{"device":"hand-right"}'`;
    `npx iwsdk scene transform` of `Board` lies on that surface (height within 1 cm).
-3. Rooms: repeat step 2 with `dev.emulator.environment` set to `living_room`, `home_office`,
-   `kitchen`, `office_small` and `bedroom`; at least one must end in the fallback pose.
+3. Rooms: repeat step 2 with `dev.emulator.environment` set to `sunlit_living_room`,
+   `home_office`, `kitchen`, `open_office` and `bedroom` (`living_room` and `office_small` are
+   legacy rooms that IWSDK 1.1 replaces); at least one must end in the fallback pose. IWER
+   starts the head standing at the room center, so seat it near the table first.
 4. Fire: `npx iwsdk ecs pause`, `npx iwsdk ecs step`, `npx iwsdk ecs snapshot`,
    `npx iwsdk ecs diff` around a few steps to show burning cells grow downwind and uphill.
 5. Tools: `npx iwsdk xr run-sequence` with a pinch and drag across the terrain (dig line), a
@@ -41,6 +43,14 @@ npx iwsdk dev status          # wait for browserCommandReady: true
 7. Evidence: `npx iwsdk browser screenshot --output-file artifacts/<slice>.png`,
    `npx iwsdk browser logs` with zero errors, `npx iwsdk scene render-stats` numbers into
    PERF.md.
+
+## When the IWSDK managed browser cannot start
+
+On a machine where Chromium cannot be launched from the shell (see TESTING.md), run the dev
+server with `HOLDLINE_HTTP=1` (plain `http://localhost`, a secure context for WebXR) and
+`--no-open`, open it in any local browser, and drive IWER from the page with
+`scripts/emulator/slice-a.browser.js` (`IWER_DEVICE.remote.dispatch`, the same actions as the
+CLI). Keep the page visible: a hidden page gets no animation frames and IWSDK waits.
 
 ## Web pages
 

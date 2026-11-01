@@ -64,6 +64,11 @@ export class Session {
     return this.day ? Math.max(0, (this.day.liveTicks - this.tick) / TICK_HZ) : 0;
   }
 
+  /** Development only: jump the clock to the time limit. */
+  skipToEnd(): void {
+    if (this.day) this.liveSeconds = this.day.liveTicks / TICK_HZ;
+  }
+
   beginLive(): void {
     this.running = true;
     this.paused = false;

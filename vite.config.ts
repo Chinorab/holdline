@@ -33,7 +33,9 @@ function dropAgentNotes(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [iwsdkDev(), dropAgentNotes()],
+  // HOLDLINE_HTTP=1 serves the dev build over http://localhost (a secure context for
+  // WebXR) for local browsers that do not trust the generated certificate.
+  plugins: [iwsdkDev(process.env.HOLDLINE_HTTP === '1' ? { https: false } : {}), dropAgentNotes()],
   server: { host: '0.0.0.0', port: 8081, open: false },
   build: {
     outDir: 'dist',

@@ -6,11 +6,32 @@ import { fileURLToPath } from 'node:url';
 
 const dist = fileURLToPath(new URL('../dist', import.meta.url));
 
-// URLs that appear in library code but are never requested: XML namespaces and spec
-// identifiers. Anything else is a failure until it is removed or explained here.
+// URL strings that ship inside library code but are never requested by the game. Each
+// entry says why; anything else fails the check until it is removed or explained here.
 const ALLOWED = [
-  /^http:\/\/www\.w3\.org\//u,
-  /^https?:\/\/www\.w3\.org\//u,
+  // XML and JSON schema identifiers, compared as strings, never fetched.
+  { re: /^https?:\/\/www\.w3\.org\//u, why: 'XML namespace identifiers' },
+  { re: /^https?:\/\/json-schema\.org\//u, why: 'JSON schema identifiers' },
+  { re: /^https:\/\/iwsdk\.dev\/schemas\//u, why: 'IWSDK scene schema identifier' },
+  // Text inside messages and comments.
+  { re: /^https:\/\/iwsdk\.dev\/api\//u, why: 'documentation link in an IWSDK warning' },
+  { re: /^https:\/\/jcgt\.org\//u, why: 'paper citation in a three.js shader string' },
+  // Placeholders used to parse relative URLs, not hosts.
+  { re: /^https:\/\/iwsdk\.local/u, why: 'IWSDK base URL placeholder for URL parsing' },
+  { re: /^http:\/\/\[\$\{/u, why: 'IPv6 host formatting template' },
+  // Defaults the game never reaches.
+  {
+    re: /^https:\/\/cdn\.jsdelivr\.net\/npm\/@webxr-input-profiles\/assets@1\.0\/dist\/profiles/u,
+    why: 'rewritten to /input-profiles by src/xr/input-profiles.ts before any load',
+  },
+  {
+    re: /^https:\/\/unpkg\.com\/three@0\./u,
+    why: 'Draco and KTX2 decoder defaults; no model of the game uses those extensions',
+  },
+  {
+    re: /^https:\/\/api\.dicebear\.com\//u,
+    why: 'default image of the Horizon kit Avatar component, which no panel uses',
+  },
 ];
 
 const problems = [];
@@ -32,7 +53,7 @@ for (const path of files) {
   const text = readFileSync(path, 'utf8');
   for (const match of text.matchAll(/https?:\/\/[^\s"'`)<>\\]+/gu)) {
     const url = match[0];
-    if (ALLOWED.some((re) => re.test(url))) continue;
+    if (ALLOWED.some((entry) => entry.re.test(url))) continue;
     problems.push(`foreign origin in ${rel}: ${url.slice(0, 120)}`);
   }
 }

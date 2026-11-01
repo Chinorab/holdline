@@ -7,8 +7,16 @@ const uikitml = (fileName: string, name: string) => ({
   url: publicAssetUrl(`ui/${fileName}`),
   type: AssetType.UIKitML,
   name,
+  priority: 'lazy' as const,
 });
 
-export default defineAssets({});
-
-export { uikitml };
+// Panels are spawned at runtime by the game (src/ui/panels.ts); they are listed here so
+// the editor and the IWSDK UI tools can preview them.
+export default defineAssets({
+  'briefing-panel': uikitml('briefing.uikitml', 'Briefing'),
+  'strip-panel': uikitml('strip.uikitml', 'Instruction strip'),
+  'toolbar-panel': uikitml('toolbar.uikitml', 'Toolbar'),
+  'pause-panel': uikitml('pause.uikitml', 'Pause'),
+  'about-panel': uikitml('about.uikitml', 'About'),
+  'result-panel': uikitml('result.uikitml', 'Result'),
+});

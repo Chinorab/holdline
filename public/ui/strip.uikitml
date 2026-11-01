@@ -1,0 +1,33 @@
+<!--
+  Instruction strip above the board's near edge: one icon and at most four words.
+-->
+<style>
+  .strip {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 640px;
+    height: 120px;
+    padding-left: 28px;
+    padding-right: 28px;
+    border-radius: 8px;
+    background-color: #f3f1ed;
+    border-width: 3px;
+    border-color: #1d1c1a;
+  }
+  .icon {
+    width: 52px;
+    height: 52px;
+    color: #1d1c1a;
+  }
+  .text {
+    font-size: 50px;
+    font-weight: 700;
+    color: #1d1c1a;
+  }
+</style>
+<div class="strip">
+  <Hand id="strip-icon" class="icon"></Hand>
+  <span id="strip-text" class="text">Pinch to place</span>
+</div>

@@ -1,0 +1,1 @@
+@webxr-input-profiles/assets 1.0.20 (license: see LICENSE in this folder), profiles: generic-hand, meta-quest-touch-plus, meta-quest-touch-plus-v2, meta-quest-touch-pro, oculus-touch-v3

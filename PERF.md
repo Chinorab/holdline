@@ -1,0 +1,32 @@
+# Performance log
+
+Budget (constitution V): 72 fps target, never below 60; under 100 draw calls and 250k
+triangles; no post processing, no realtime shadows; cold start under 5 s.
+
+Numbers come from `renderer.info` read in the page after a frame (`__holdlineDebug.stats()`,
+development builds only). In an immersive session three.js draws each eye, so the counts
+below are **per frame, both eyes together**; per eye is about half.
+
+## Slice a (2026-11-01)
+
+Emulator: IWER, Meta Quest 3 profile, rooms `sunlit_living_room` and `home_office`, inside
+the Claude desktop browser pane (see TESTING.md for why not the IWSDK managed browser).
+
+| Moment | Draw calls | Triangles | Notes |
+|--------|-----------:|----------:|-------|
+| Brief, first build | 48 | 247,168 | terrain 256 by 160 quads everywhere, two trees per dense forest cell, 8 sided brush |
+| Brief, after the pass | 52 | 171,252 | flat terrace cells drawn as one quad, one 4 sided tree per forest cell, 4 sided brush; controller models visible |
+| Live, 57 cells burning | 42 | 166,764 | controllers, smoke and flames on |
+| Live, hands, pause card shown | 62 | 170,184 | highest draw count seen |
+| Outcome after the time lapse | 38 | 165,788 | |
+
+Peak fire adds at most 400 flame cards and 200 smoke cards, under 1,600 triangles for both
+eyes, so the worst case stays near 172k triangles and about 62 draw calls.
+
+Frame rate: not measurable here. The emulated session ran at about 3 fps in the browser
+pane (software rendering of the emulated room plus both eyes), which says nothing about a
+Quest 3. A frame rate claim needs a headset (TESTING.md).
+
+Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
+MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
+measured on the deployed site in slice f.

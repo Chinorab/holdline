@@ -25,35 +25,35 @@ PROGRESS.md updated, commit.
 
 ## Phase 1: Setup
 
-- [ ] T001 Remove template demo content (src/robot.ts, src/robot-component.ts, src/panel.ts, src/scene-assets/*.scene-asset.ts, public/ui/welcome.uikitml, public/ui/label-*.uikitml, public/audio/chime.mp3) and reset src/index.ts, src/assets.ts, src/components.ts and public/scenes/main.iwsdk.scene.json to a minimal AR app that typechecks
-- [ ] T002 Rename to Holdline in package.json (name), index.html (title) and README.md; add LICENSE (all rights reserved, Meta's MIT notice kept on starter files)
-- [ ] T003 Set iwsdk.config.json: `xr.offer` none, features handTracking, planeDetection, meshDetection, anchors, hitTest, gazeTracking (optional), sceneUnderstanding without wireframe, spatialUI light scheme, emulator device metaQuest3 and room living_room; validate against the schema
-- [ ] T004 [P] Add Vitest with vitest.config.ts and `npm test`, tests running sim code in Node
-- [ ] T005 [P] Add Playwright with playwright.config.ts (projects: dev server with emulator, production preview) and `npm run test:web`
-- [ ] T006 [P] Keep public/**/AGENTS.md out of dist via a build step in vite.config.ts, plus scripts/check-dist.mjs (no AGENTS.md, no source maps, no foreign origins in built files)
-- [ ] T007 [P] Create src/copy.ts with every string of contracts/ui-contract.md and tests/logic/copy-scan.test.ts (no dash or hyphen characters, no emojis, no "AI", instructions at most 4 words)
-- [ ] T008 Extend .gitignore (artifacts/, .specify/feature.json) and commit the scaffold, specs and constitution
+- [x] T001 Remove template demo content (src/robot.ts, src/robot-component.ts, src/panel.ts, src/scene-assets/*.scene-asset.ts, public/ui/welcome.uikitml, public/ui/label-*.uikitml, public/audio/chime.mp3) and reset src/index.ts, src/assets.ts, src/components.ts and public/scenes/main.iwsdk.scene.json to a minimal AR app that typechecks
+- [x] T002 Rename to Holdline in package.json (name), index.html (title) and README.md; add LICENSE (all rights reserved, Meta's MIT notice kept on starter files)
+- [x] T003 Set iwsdk.config.json: `xr.offer` none, features handTracking, planeDetection, meshDetection, anchors, hitTest, gazeTracking (optional), sceneUnderstanding without wireframe, spatialUI light scheme, emulator device metaQuest3 and room living_room; validate against the schema
+- [x] T004 [P] Add Vitest with vitest.config.ts and `npm test`, tests running sim code in Node
+- [x] T005 [P] Add Playwright with playwright.config.ts (projects: dev server with emulator, production preview) and `npm run test:web` (config and script in place; the specs themselves are T081)
+- [x] T006 [P] Keep public/**/AGENTS.md out of dist via a build step in vite.config.ts, plus scripts/check-dist.mjs (no AGENTS.md, no source maps, no foreign origins in built files)
+- [x] T007 [P] Create src/copy.ts with every string of contracts/ui-contract.md and tests/logic/copy-scan.test.ts (no dash or hyphen characters, no emojis, no "AI", instructions at most 4 words)
+- [x] T008 Extend .gitignore (artifacts/, .specify/feature.json) and commit the scaffold, specs and constitution
 
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T009 Verify first (hz-quest-verify-first, `metavr docs search`, `npx iwsdk reference search`): pointer events with hit point and capture, hand joint access, UIKitML MSDF fonts, input profile base path, IWER planes and anchors in emulated rooms, render stats output; write answers in research.md under "Slice a verification"
-- [ ] T010 Verify the Alexandridis et al. (2008) constants and slope formula against the paper's full text; record the result in research.md R2; until verified, public copy says "inspired by" with no number
-- [ ] T011 [P] Implement src/sim/detmath.ts (exp, atan, cos with basic IEEE operations) with tests/sim/detmath.test.ts (relative error under 1e-9 against Math, stable across calls)
-- [ ] T012 [P] Implement src/sim/rng.ts counter based hash RNG with tests/sim/rng.test.ts (uniformity, key independence)
-- [ ] T013 [P] Implement src/sim/grid.ts (W 128, H 80, index helpers, 8 neighbor offsets and distances) and src/sim/hash.ts (FNV 1a over typed arrays)
-- [ ] T014 Implement src/sim/terrain-gen.ts (seeded ridges and valleys, river, road, town of 6 houses, fuel, density, moisture) with tests/sim/terrain-gen.test.ts (same seed same arrays, river and road continuous, 6 houses, slope within range over 60 dates)
-- [ ] T015 Implement src/sim/day.ts (DayConfig for a date and for day0: seed, wind, shifts, ignitions, crew budget, spread period, tools) with tests/sim/day.test.ts
-- [ ] T016 Implement src/sim/model.ts (p_burn with p_veg, p_den, p_w, p_s, moisture factor, ember spotting) and src/sim/sim.ts (state arrays, synchronous step, events, hash)
-- [ ] T017 [P] tests/sim/determinism.test.ts: same day and inputs give the same hash at every step; replay from recorded inputs matches; baseline equals a fresh no input run
-- [ ] T018 [P] tests/sim/spread.test.ts: uphill faster than downhill on a synthetic slope; downwind faster than upwind on flat ground; grass catches faster than forest and forest burns longer
-- [ ] T019 [P] tests/sim/breaks.test.ts: rock, water, road and dug line stop spread with spotting off; with strong wind and spotting on, a seeded case starts a spot fire beyond the break
-- [ ] T020 [P] tests/sim/water.test.ts: a watered strip delays ignition and crossing compared with dry ground, and douses burning cells
-- [ ] T021 Implement src/sim/inputs.ts (Input types and validation: budget, cooldown, locked tools) and src/sim/outcome.ts (resolve to extinction with a 600 step cap, houses standing, hectares, scar bits)
-- [ ] T022 Implement src/worker/protocol.ts, src/worker/sim.worker.ts and src/worker/client.ts per contracts/worker-protocol.md (init, advance, input, resolve, replay, background baseline)
-- [ ] T023 Implement src/store/storage.ts (safe localStorage with in memory fallback), src/store/progress.ts and src/store/migrations.ts with tests/logic/storage.test.ts
-- [ ] T024 Implement src/game/session.ts: unpaused frame time to tick, input recording, run persisted on every input, on pause and every 5 s
+- [x] T009 Verify first (hz-quest-verify-first, `metavr docs search`, `npx iwsdk reference search`): pointer events with hit point and capture, hand joint access, UIKitML MSDF fonts, input profile base path, IWER planes and anchors in emulated rooms, render stats output; write answers in research.md under "Slice a verification"
+- [x] T010 Verify the Alexandridis et al. (2008) constants and slope formula against the paper's full text; record the result in research.md R2; until verified, public copy says "inspired by" with no number
+- [x] T011 [P] Implement src/sim/detmath.ts (exp, atan, cos with basic IEEE operations) with tests/sim/detmath.test.ts (relative error under 1e-9 against Math, stable across calls)
+- [x] T012 [P] Implement src/sim/rng.ts counter based hash RNG with tests/sim/rng.test.ts (uniformity, key independence)
+- [x] T013 [P] Implement src/sim/grid.ts (W 128, H 80, index helpers, 8 neighbor offsets and distances) and src/sim/hash.ts (FNV 1a over typed arrays)
+- [x] T014 Implement src/sim/terrain-gen.ts (seeded ridges and valleys, river, road, town of 6 houses, fuel, density, moisture) with tests/sim/terrain-gen.test.ts (same seed same arrays, river and road continuous, 6 houses, slope within range over 60 dates)
+- [x] T015 Implement src/sim/day.ts (DayConfig for a date and for day0: seed, wind, shifts, ignitions, crew budget, spread period, tools) with tests/sim/day.test.ts
+- [x] T016 Implement src/sim/model.ts (p_burn with p_veg, p_den, p_w, p_s, moisture factor, ember spotting) and src/sim/sim.ts (state arrays, synchronous step, events, hash)
+- [x] T017 [P] tests/sim/determinism.test.ts: same day and inputs give the same hash at every step; replay from recorded inputs matches; baseline equals a fresh no input run
+- [x] T018 [P] tests/sim/spread.test.ts: uphill faster than downhill on a synthetic slope; downwind faster than upwind on flat ground; grass catches faster than forest and forest burns longer
+- [x] T019 [P] tests/sim/breaks.test.ts: rock, water, road and dug line stop spread with spotting off; with strong wind and spotting on, a seeded case starts a spot fire beyond the break
+- [x] T020 [P] tests/sim/water.test.ts: a watered strip delays ignition and crossing compared with dry ground, and douses burning cells
+- [x] T021 Implement src/sim/inputs.ts (Input types and validation: budget, cooldown, locked tools) and src/sim/outcome.ts (resolve to extinction with a 600 step cap, houses standing, hectares, scar bits)
+- [x] T022 Implement src/worker/protocol.ts, src/worker/sim.worker.ts and src/worker/client.ts per contracts/worker-protocol.md (init, advance, input, resolve, replay, background baseline)
+- [x] T023 Implement src/store/storage.ts (safe localStorage with in memory fallback), src/store/progress.ts and src/store/migrations.ts with tests/logic/storage.test.ts
+- [x] T024 Implement src/game/session.ts: unpaused frame time to tick, input recording, run persisted on every input, on pause and every 5 s
 
 **Checkpoint**: `npm test` green; the fire runs headless in Node.
 
@@ -65,22 +65,22 @@ PROGRESS.md updated, commit.
 slope, smoke into the room, pause and resume, time lapse.
 **Independent test**: quickstart scenarios 1 to 4 in two rooms, one ending in the fallback.
 
-- [ ] T025 [US1] Self host input profiles in public/input-profiles/ and point IWSDK at them (or hide controller models) per research R14; the network log shows no third party request
-- [ ] T026 [P] [US1] Board root, paper plinth and grab rim in src/render/board.ts (56 by 35 cm default)
-- [ ] T027 [P] [US1] Terraced heightfield mesh (256 by 160 quads) in src/render/terrain-mesh.ts
-- [ ] T028 [US1] Terrain shader in src/render/terrain.glsl.ts with src/render/state-texture.ts: style board palette, contours and index edges, burning cells with light core and ink edge, burned ash, interpolation from ignition steps
-- [ ] T029 [P] [US1] Instanced trees, shrubs and houses with burned variants in src/render/vegetation.ts and src/render/houses.ts
-- [ ] T030 [P] [US1] Standing paper flames in src/render/flames.ts (alpha tested instanced cards, cap 400, sway under 3 Hz)
-- [ ] T031 [P] [US1] Smoke in src/render/smoke.ts (instanced billboards, cap 200, drifts with the wind past the board edge, ignition column in the brief)
-- [ ] T032 [P] [US1] Wind vane and grass sway in src/render/wind-vane.ts
-- [ ] T033 [US1] Placement in src/xr/placement-system.ts: score horizontal planes and table or desk meshes (0.5 to 1.1 m, near, in front, big enough), highlight, pinch to place, switch candidate, 4 s fallback pose with handle, redo from the edge, optional Scan table button
-- [ ] T034 [US1] Anchors in src/xr/anchor-service.ts (raw WebXR createAnchor, persistent handle save, restore and delete, at most 8, feature detected) with tests/logic/anchor-service.test.ts on a fake session
-- [ ] T035 [US1] Phase machine in src/game/phases.ts: placing, brief (landscape rises in about 10 s), plan (30 s, paused, Start ends early), live, resolving, outcome placeholder, time lapse
-- [ ] T036 [US1] Pause in src/xr/visibility-system.ts (auto pause on visibility loss) with public/ui/pause.uikitml; resume continues the exact tick
-- [ ] T037 [US1] Time lapse in src/render/timelapse.ts (10 s, from ignition, burnout and line ticks)
-- [ ] T038 [US1] Briefing card public/ui/briefing.uikitml and instruction strip public/ui/strip.uikitml from the canvas, registered in src/assets.ts, fonts per T009
-- [ ] T039 [US1] Gate: scripts/emulator/slice-a.mjs (enter XR with hands, placement in living_room and office_small, fire runs, pause and resume, time lapse), screenshots in artifacts/slice-a/, zero console errors, Glasses profile pass
-- [ ] T040 [US1] Gate: peak fire render stats into PERF.md, PROGRESS.md, commit "slice a"
+- [x] T025 [US1] Self host input profiles in public/input-profiles/ and point IWSDK at them (or hide controller models) per research R14; the network log shows no third party request
+- [x] T026 [P] [US1] Board root, paper plinth and grab rim in src/render/board.ts (56 by 35 cm default)
+- [x] T027 [P] [US1] Terraced heightfield mesh (256 by 160 quads) in src/render/terrain-mesh.ts
+- [x] T028 [US1] Terrain shader in src/render/terrain.glsl.ts with src/render/state-texture.ts: style board palette, contours and index edges, burning cells with light core and ink edge, burned ash, interpolation from ignition steps
+- [x] T029 [P] [US1] Instanced trees, shrubs and houses with burned variants in src/render/vegetation.ts and src/render/houses.ts
+- [x] T030 [P] [US1] Standing paper flames in src/render/flames.ts (alpha tested instanced cards, cap 400, sway under 3 Hz)
+- [x] T031 [P] [US1] Smoke in src/render/smoke.ts (instanced billboards, cap 200, drifts with the wind past the board edge, ignition column in the brief)
+- [x] T032 [P] [US1] Wind vane and grass sway in src/render/wind-vane.ts
+- [x] T033 [US1] Placement in src/xr/placement-system.ts: score horizontal planes and table or desk meshes (0.5 to 1.1 m, near, in front, big enough), highlight, pinch to place, switch candidate, 4 s fallback pose with handle, redo from the edge, optional Scan table button (the optional Scan table button moves to slice e)
+- [x] T034 [US1] Anchors in src/xr/anchor-service.ts (raw WebXR createAnchor, persistent handle save, restore and delete, at most 8, feature detected) with tests/logic/anchor-service.test.ts on a fake session
+- [x] T035 [US1] Phase machine in src/game/phases.ts: placing, brief (landscape rises in about 10 s), plan (30 s, paused, Start ends early), live, resolving, outcome placeholder, time lapse
+- [x] T036 [US1] Pause in src/xr/visibility-system.ts (auto pause on visibility loss) with public/ui/pause.uikitml; resume continues the exact tick (done in src/game/phases.ts through the visibility signal; no separate file)
+- [x] T037 [US1] Time lapse in src/render/timelapse.ts (10 s, from ignition, burnout and line ticks) (done in src/render/board.ts and state-texture.ts)
+- [x] T038 [US1] Briefing card public/ui/briefing.uikitml and instruction strip public/ui/strip.uikitml from the canvas, registered in src/assets.ts, fonts per T009 (Horizon kit font for now; local MSDF fonts with the web fonts in slice f)
+- [x] T039 [US1] Gate: scripts/emulator/slice-a.mjs (enter XR with hands, placement in living_room and office_small, fire runs, pause and resume, time lapse), screenshots in artifacts/slice-a/, zero console errors, Glasses profile pass (ran in the desktop browser pane with IWER remote control because the IWSDK managed browser cannot start under the agent sandbox; see TESTING.md and scripts/emulator/slice-a.browser.js)
+- [x] T040 [US1] Gate: peak fire render stats into PERF.md, PROGRESS.md, commit "slice a"
 
 **Checkpoint**: a full fire plays on a real or fallback board with no input.
 
