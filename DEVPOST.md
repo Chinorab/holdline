@@ -1,7 +1,7 @@
 # Holdline: Devpost submission text
 
 Copy rules hold here too: no dashes or hyphens, no emojis, short, every figure sourced.
-Replace https://holdline-kappa.vercel.app and [VIDEO_URL] once deployed and uploaded.
+Replace [VIDEO_URL] once the video is uploaded.
 
 ## Form fields
 
