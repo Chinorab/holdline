@@ -29,6 +29,7 @@ http://localhost:8081.
 | landing: same, with the Enter mixed reality button ready (emulator injected) | dev | pass |
 | privacy: four promises and the way back, zero console errors, no other host | prod, dev | pass |
 | enter mixed reality: the landing hides as the session starts | dev | pass |
+| landing and privacy on the live site https://holdline-kappa.vercel.app | prod (HOLDLINE_PROD_URL) | pass: zero console errors, no other host; headers Permissions-Policy, Referrer-Policy, nosniff, HSTS served |
 
 Checked by hand in the browser pane: the landing at 1280 by 800 and 375 by 812 (no
 horizontal scroll, the wordmark fits its column, the text starts under the hero on a phone),

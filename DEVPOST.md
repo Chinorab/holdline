@@ -1,7 +1,7 @@
 # Holdline: Devpost submission text
 
 Copy rules hold here too: no dashes or hyphens, no emojis, short, every figure sourced.
-Replace [HOLDLINE_URL] and [VIDEO_URL] once deployed and uploaded.
+Replace https://holdline-kappa.vercel.app and [VIDEO_URL] once deployed and uploaded.
 
 ## Form fields
 
@@ -11,7 +11,7 @@ Replace [HOLDLINE_URL] and [VIDEO_URL] once deployed and uploaded.
 - **Track:** Gaming
 - **Division:** New
 - **Build path:** IWSDK (Web XR)
-- **URL:** [HOLDLINE_URL]
+- **URL:** https://holdline-kappa.vercel.app
 - **Video:** [VIDEO_URL]
 - **Target launch date:** Spring 2027, as a progressive web app on the Meta Horizon Store.
 

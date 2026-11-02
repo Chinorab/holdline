@@ -173,8 +173,8 @@ third party request; the 3 step judge test works in the emulator.
 - [x] T080 [P] [US8] Privacy page privacy.html from canvas Privacy (four promises, back link) (camera promise says the board's saved spot is kept on the headset)
 - [x] T081 [P] [US8] Playwright specs tests/web/landing.spec.ts, tests/web/privacy.spec.ts, tests/web/enter-mr.spec.ts (zero console errors, no third party requests)
 - [x] T082 [US8] Replace the mockup hero with a real capture of the board from the emulator in public/hero.webp
-- [ ] T083 [US8] Vercel deploy with vercel.json (headers, clean URLs), project holdline, production URL checked with Playwright
-- [ ] T084 [US8] Public GitHub repository Chinorab/holdline with LICENSE, pushed
+- [x] T083 [US8] Vercel deploy with vercel.json (headers, clean URLs), project holdline, production URL checked with Playwright (https://holdline-kappa.vercel.app, CLI deploys only, no Git integration so pushes never redeploy)
+- [x] T084 [US8] Public GitHub repository Chinorab/holdline with LICENSE, pushed
 - [x] T085 [P] README.md (run steps, 3 step judge test), TESTING.md (what ran where, what needs a headset), CREDITS.md (fonts OFL, IWSDK MIT, sounds original, paper citation), PERF.md final
 - [x] T086 [P] DEVPOST.md (Inspiration with research R1 sources, What it does, How we built it, Challenges, Accomplishments, What we learned, What's next with a spring 2027 Meta Horizon Store PWA target, form answers for capabilities and hand interactions)
 - [x] T087 [P] VIDEO_SCRIPT.md under 2:45 (problem in 10 s, board landing, a full fire day, outcome versus no action, journal; real capture only)

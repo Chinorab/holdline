@@ -4,7 +4,7 @@ One wildfire a day, on your real table. A seated, hands first mixed reality game
 Meta Quest 3 and 3S, played in the Meta Quest browser. Built with the Immersive Web SDK
 (WebXR) for the Meta VR Start Developer Competition 2026 (Gaming track, New Experience).
 
-Play: [HOLDLINE_URL] in the Meta Quest browser.
+Play: https://holdline-kappa.vercel.app in the Meta Quest browser.
 
 ## Judge test (3 steps)
 

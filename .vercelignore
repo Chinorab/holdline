@@ -1,0 +1,8 @@
+.env
+.env.*
+node_modules
+dist
+artifacts
+test-results
+playwright-report
+.vercel

@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-02 (Paris), slice f local work done
+Last update: 2026-11-02 (Paris), deployed and pushed
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,14 +8,13 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice f local work is done (pages, hero, icons, web tests, docs, Devpost texts). Waiting for
-the user's go ahead on the outward steps:
-- T083 Vercel deploy (vercel.json ready; project `holdline`), then check the production URL
-  with Playwright (point the prod project's baseURL at it, HOLDLINE_SKIP_PREVIEW=1), and put
-  the URL in README.md and DEVPOST.md ([HOLDLINE_URL]).
-- T084 public GitHub repository Chinorab/holdline and push (all rights reserved license).
-- T088 final pass, release tag, then freeze production until after 2026-12-11.
-- Video: VIDEO_SCRIPT.md, capture in a normal browser window, upload, [VIDEO_URL].
+Deployed: https://holdline-kappa.vercel.app (Vercel project `holdline`, team anas02-projects,
+deployed with the CLI only: `npx vercel@latest deploy --prod --yes --scope anas02-projects`).
+Public repo: https://github.com/Chinorab/holdline (branch main; local branch
+001-tabletop-wildfire tracks it). Left: the video (VIDEO_SCRIPT.md, [VIDEO_URL] in
+DEVPOST.md), a headset check if one is available, T088 final pass and release tag, the
+Devpost submission before 2026-11-18 20:00 UTC, then no production change until after
+2026-12-11.
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,

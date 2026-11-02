@@ -18,7 +18,7 @@ export default defineConfig({
     },
     {
       name: 'prod',
-      use: { baseURL: 'https://localhost:4173' },
+      use: { baseURL: process.env.HOLDLINE_PROD_URL ?? 'https://localhost:4173' },
     },
   ],
   webServer: process.env.HOLDLINE_SKIP_PREVIEW
