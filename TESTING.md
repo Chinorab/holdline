@@ -7,7 +7,7 @@ What ran, where, and what still needs a headset. Updated at each slice gate.
 | Suite | Command | Slice a result |
 |-------|---------|----------------|
 | Typecheck (app and tests) | `npm run typecheck` | clean |
-| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests; slice d: 20 files, 189 tests; slice e: 20 files, 208 tests pass |
+| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests; slice d: 20 files, 189 tests; slice e: 20 files, 208 tests; slice f: 20 files, 199 tests pass (privacy copy moved into privacy.html, which the copy scan now reads) |
 | Production build and dist check | `npm run build` | builds; `scripts/check-dist.mjs` ok (no agent notes, no source maps, every library URL explained) |
 
 The fire model tests cover: same day and inputs give the same state hash at every tick;
@@ -16,6 +16,23 @@ uphill faster than downhill; downwind faster than upwind; grass catches faster a
 burns longer; rock, water, road and a dug line stop the fire with embers off; embers jump a
 road in strong wind; water delays the crossing and douses burning cells; pacing over 60
 dates (houses lost on 53 days with no action, first loss after 57 s median).
+
+## Web pages (slice f)
+
+`npx playwright test` (Playwright Chromium, run outside the agent sandbox, which blocks it),
+with the production build served by `vite preview` (HTTPS) and the dev server on
+http://localhost:8081.
+
+| Spec | Project | Result |
+|------|---------|--------|
+| landing: name, line, facts, privacy link, favicon.svg, favicon.ico, icon-192.png, hero.webp served, zero console errors, no request to another host; on desktop the "Open this page in the Meta Quest browser." line | prod | pass |
+| landing: same, with the Enter mixed reality button ready (emulator injected) | dev | pass |
+| privacy: four promises and the way back, zero console errors, no other host | prod, dev | pass |
+| enter mixed reality: the landing hides as the session starts | dev | pass |
+
+Checked by hand in the browser pane: the landing at 1280 by 800 and 375 by 812 (no
+horizontal scroll, the wordmark fits its column, the text starts under the hero on a phone),
+the privacy page at 375 by 812, both fonts loaded from the site, no request to another host.
 
 ## Emulator (slice a)
 

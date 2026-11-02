@@ -28,6 +28,21 @@ describe('copy rules', () => {
     }
   });
 
+  it('keeps the web pages clean', () => {
+    const root = join(__dirname, '..', '..');
+    for (const file of ['index.html', 'privacy.html']) {
+      const source = readFileSync(join(root, file), 'utf8');
+      const body = source.replace(/<style>[\s\S]*?<\/style>/gu, '').replace(/<script[\s\S]*?<\/script>/gu, '');
+      const texts = [...body.matchAll(/>([^<>]+)</gu)].map((m) => m[1].trim()).filter(Boolean);
+      const alts = [...body.matchAll(/(?:alt="|name="description" content=")([^"]+)"/gu)].map((m) => m[1]);
+      for (const t of [...texts, ...alts]) {
+        expect(t, `${file}: ${t}`).not.toMatch(DASHES);
+        expect(t, `${file}: ${t}`).not.toMatch(EMOJI);
+        expect(t, `${file}: ${t}`).not.toMatch(AI_WORD);
+      }
+    }
+  });
+
   it('keeps UIKitML panel text clean', () => {
     const dir = join(__dirname, '..', '..', 'public', 'ui');
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.uikitml'))) {

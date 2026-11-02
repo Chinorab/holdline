@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-02 (Paris), slice e done
+Last update: 2026-11-02 (Paris), slice f local work done
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,10 +8,14 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice e is done. Next: slice f, T078 onward in `specs/001-tabletop-wildfire/tasks.md`
-(landing and privacy pages from the canvas with local fonts, Vercel deploy, GitHub push to
-Chinorab/holdline, docs, DEVPOST.md, VIDEO_SCRIPT.md). Pushing and deploying need the user's
-go ahead.
+Slice f local work is done (pages, hero, icons, web tests, docs, Devpost texts). Waiting for
+the user's go ahead on the outward steps:
+- T083 Vercel deploy (vercel.json ready; project `holdline`), then check the production URL
+  with Playwright (point the prod project's baseURL at it, HOLDLINE_SKIP_PREVIEW=1), and put
+  the URL in README.md and DEVPOST.md ([HOLDLINE_URL]).
+- T084 public GitHub repository Chinorab/holdline and push (all rights reserved license).
+- T088 final pass, release tag, then freeze production until after 2026-12-11.
+- Video: VIDEO_SCRIPT.md, capture in a normal browser window, upload, [VIDEO_URL].
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -39,6 +43,10 @@ go ahead.
       color vision check, board size, height and turn (edge controls in one hand mode),
       slower fire with a longer plan, dwell select and head pointer (own ray), Glasses view
       frame and compact layout (automatic on the glasses), fit check, 72 Hz request.
+
+- [x] Slice f local (T078 to T082, T085 to T087): landing and privacy pages from the canvas
+      with self hosted fonts, real hero capture, icons, Playwright web specs (5 pass),
+      README with the judge test, CREDITS, DEVPOST.md, VIDEO_SCRIPT.md, vercel.json.
 
 ## Next
 - [ ] Slices d, e, f as in tasks.md
@@ -94,6 +102,8 @@ go ahead.
 - The placement system reapplies the anchor pose every frame: move the board only through
   `placement.adjust` (height, turn), never by setting its pose directly.
 - UIKit buttons: a recursive raycast from the panel misses them; `Panel.buttonHit` asks each.
+- Playwright Chromium starts only outside the agent sandbox (Bash with the sandbox off); the
+  vite preview of the build serves HTTPS.
 - Glasses profile in the emulator: `set_input_mode` hand first, gaze is the `gaze` device,
   pinch with `select` on `hand-left` (duration 1.2 s at the pane's frame rate).
 - Changing iwsdk.config.json restarts the dev server; a server started by an older session

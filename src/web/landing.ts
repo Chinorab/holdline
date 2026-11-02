@@ -2,34 +2,25 @@ import { VisibilityState, type World } from '@iwsdk/core';
 import { BRAND, WEB } from '../copy.js';
 
 /**
- * Landing overlay over the canvas: wordmark, tagline, three facts and the Enter mixed
- * reality button. Hidden while an immersive session runs.
+ * Landing page over the canvas: hero capture, wordmark, tagline, the Enter mixed reality
+ * button, three facts and the privacy link. Hidden while an immersive session runs.
  */
 export function mountLanding(world: World): void {
   const root = document.getElementById('landing');
   if (!root) return;
-  const set = (selector: string, text: string) => {
-    const el = root.querySelector(selector);
+  const set = (key: string, text: string) => {
+    const el = root.querySelector(`[data-copy="${key}"]`);
     if (el) el.textContent = text;
   };
-  set('[data-copy="name"]', BRAND.name);
-  set('[data-copy="tagline"]', BRAND.tagline);
-  set('[data-copy="privacy"]', WEB.privacyLink);
-  const facts = root.querySelector('.facts');
-  if (facts) {
-    facts.replaceChildren(
-      ...WEB.facts.map((fact) => {
-        const li = document.createElement('li');
-        li.textContent = fact;
-        return li;
-      }),
-    );
-  }
+  set('name', BRAND.name);
+  set('tagline', BRAND.tagline);
+  set('privacy', WEB.privacyLink);
+  WEB.facts.forEach((fact, k) => set(`fact-${k}`, fact));
 
   const button = root.querySelector<HTMLButtonElement>('.enter');
   const note = root.querySelector<HTMLParagraphElement>('.note');
   if (!button || !note) return;
-  button.textContent = WEB.loading;
+  set('enter', WEB.loading);
 
   const showUnsupported = () => {
     button.hidden = true;
@@ -47,7 +38,7 @@ export function mountLanding(world: World): void {
           showUnsupported();
           return;
         }
-        button.textContent = WEB.enter;
+        set('enter', WEB.enter);
         button.disabled = false;
       })
       .catch(showUnsupported);

@@ -72,6 +72,12 @@ Requested on entering: 72 Hz through `updateTargetFrameRate` when the session li
 foveation 1 (`renderer.xr.setFoveation`). New draws, only while shown: settings card, edge
 controls, pointer reticle and dwell ring, Glasses view frame.
 
+## Final numbers (slice f, 2026-11-02)
+
+Highest seen across slices a to e, per frame, both eyes: 76 draw calls, 172,336 triangles
+(budget: under 100 and 250k). Frame rate, cold start on the deployed site and 72 Hz need a
+headset (TESTING.md).
+
 Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
 MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
 measured on the deployed site in slice f.

@@ -44,7 +44,13 @@ World.create(
       world,
       Raycaster,
       /** A still of the scene from a chosen eye point, as a JPEG blob (no room behind). */
-      async snapshot(eye: number[], target: number[], width = 1280, height = 800): Promise<Blob | null> {
+      async snapshot(
+        eye: number[],
+        target: number[],
+        width = 1280,
+        height = 800,
+        options: { background?: string; type?: string; hide?: string[] } = {},
+      ): Promise<Blob | null> {
         const renderer = world.renderer;
         const camera = new PerspectiveCamera(40, width / height, 0.01, 20);
         camera.position.fromArray(eye);
@@ -59,7 +65,9 @@ World.create(
         const hazeVisible = haze?.visible ?? false;
         if (haze) haze.visible = false;
         renderer.xr.enabled = false;
-        world.scene.background = new Color('#d8d4cd');
+        world.scene.background = new Color(options.background ?? '#d8d4cd');
+        const hidden = (options.hide ?? []).map((name) => world.scene.getObjectByName(name)).filter((o) => o?.visible);
+        for (const o of hidden) if (o) o.visible = false;
         renderer.setRenderTarget(rt);
         renderer.render(world.scene, camera);
         const pixels = new Uint8Array(width * height * 4);
@@ -67,6 +75,7 @@ World.create(
         renderer.setRenderTarget(null);
         renderer.xr.enabled = xrEnabled;
         world.scene.background = background;
+        for (const o of hidden) if (o) o.visible = true;
         if (haze) haze.visible = hazeVisible;
         rt.dispose();
         const canvas = document.createElement('canvas');
@@ -79,7 +88,7 @@ World.create(
           image.data.set(pixels.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4);
         }
         ctx.putImageData(image, 0, 0);
-        return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        return new Promise((resolve) => canvas.toBlob(resolve, options.type ?? 'image/jpeg', 0.9));
       },
       errors: () => pageErrors.slice(),
       skipToEnd() {

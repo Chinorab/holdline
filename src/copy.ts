@@ -15,14 +15,6 @@ export const WEB = {
   privacyLink: 'Privacy',
   unsupported: 'Open this page in the Meta Quest browser.',
   loading: 'Loading',
-  privacyTitle: 'Privacy',
-  privacy: [
-    { title: 'No account', body: 'You never sign up or log in.' },
-    { title: 'No tracking', body: 'No analytics, no ads, no cookies.' },
-    { title: 'Progress stays on this device', body: 'Your fires and journal live in this browser only.' },
-    { title: 'No camera access', body: 'Holdline uses room surfaces and hand tracking from the headset, never its cameras.' },
-  ],
-  back: 'Back to Holdline',
 } as const;
 
 // Short instructions shown on the strip above the board (4 words max).

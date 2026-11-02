@@ -18,14 +18,15 @@ export default defineConfig({
     },
     {
       name: 'prod',
-      use: { baseURL: 'http://localhost:4173' },
+      use: { baseURL: 'https://localhost:4173' },
     },
   ],
   webServer: process.env.HOLDLINE_SKIP_PREVIEW
     ? undefined
     : {
         command: 'npm run build && npm run preview',
-        url: 'http://localhost:4173',
+        url: 'https://localhost:4173',
+        ignoreHTTPSErrors: true,
         reuseExistingServer: true,
         timeout: 180000,
       },
