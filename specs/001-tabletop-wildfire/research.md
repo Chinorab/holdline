@@ -139,6 +139,15 @@ hz-quest-verify-first and `iwsdk reference` right before the code that uses them
   edge buttons. The fallback handle uses `OneHandGrabbable` or `DistanceGrabbable`.
 - Dwell select: our `DwellSystem` reads the hovered target and fires select after 1 s with a
   fill ring; lines by dwell start, gaze path, dwell end.
+- Slice e: IWSDK's GazeSystem has no head pose fallback (its options: cone, filter, dwell
+  consensus, hand follow), so src/xr/head-pointer.ts casts the game's own ray from the eyes
+  when gaze is tracked, else from the head. UIKit buttons answer their own raycast but a
+  recursive raycast from the panel does not reach them: each registered button is asked.
+  Under dwell, a board stroke needs a tool armed first (dwell on its button), otherwise
+  watching the fire would start strokes. The highlighted table is a dwell target too.
+- Board turn and size: settings steppers and, in one hand mode, edge controls; the two hand
+  rim gesture is not built (one hand covers it). Height and turn are applied on top of the
+  anchor pose, which the placement system reapplies every frame.
 
 ## R8. Meta VR Glasses and Glasses view (verified)
 

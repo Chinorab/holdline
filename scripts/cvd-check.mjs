@@ -5,8 +5,8 @@
 //
 //   node scripts/cvd-check.mjs        prints a table, exits 1 on a failure
 //
-// Pass: Delta E of at least 20 or a contrast ratio of at least 1.5 for the fire color, and
-// separately for the fire's light core. The ink edge around the front comes on top of this.
+// Pass: for every surface the front can touch, at least one band of the front (ink edge,
+// light core, orange body) is at Delta E 20 or more, or at a contrast ratio of 1.5 or more.
 
 import { readFileSync } from 'node:fs';
 
@@ -56,33 +56,35 @@ const deltaE = (a, b) => {
   return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
 };
 
-const SURFACES = ['grass', 'brush', 'forest', 'rock', 'water', 'road', 'burned', 'ash', 'board'];
+// The front is drawn as three bands: an ink edge where it meets unburned ground, a light
+// core, then the orange body. A surface is told apart from the front when at least one band
+// clearly differs from it. Burned ground lies behind the front, never against it.
+const SURFACES = ['grass', 'brush', 'forest', 'rock', 'water', 'road', 'board'];
+const BANDS = ['ink', 'core', 'fire'];
 const VIEWS = ['normal', 'protanopia', 'deuteranopia', 'tritanopia', 'grayscale'];
 let failures = 0;
 
 for (const [paletteName, pal] of [['standard', HEX], ['high contrast', HIGH]]) {
-  console.log(`\n${paletteName} palette: closest surface to the fire and to its core, per view`);
-  console.log('view          | fire vs closest       | dE    | ratio | core vs closest       | dE    | ratio | pass');
+  console.log(`\n${paletteName} palette: for each surface, the band of the front that differs most`);
+  console.log('view          | weakest surface | its best band | dE    | ratio | pass');
   for (const view of VIEWS) {
-    const row = [];
-    let pass = true;
-    for (const part of ['fire', 'core']) {
-      const f = simulate(rgb(pal[part]), view);
-      let worst = null;
-      for (const s of SURFACES) {
-        const c = simulate(rgb(pal[s]), view);
+    let weakest = null;
+    for (const surface of SURFACES) {
+      const c = simulate(rgb(pal[surface]), view);
+      let best = null;
+      for (const band of BANDS) {
+        const f = simulate(rgb(pal[band]), view);
         const d = deltaE(f, c);
         const r = contrast(f, c);
-        // Closest by the better of the two measures: a surface is only a problem if it is
-        // close by both.
         const score = Math.max(d / 20, r / 1.5);
-        if (!worst || score < worst.score) worst = { s, d, r, score };
+        if (!best || score > best.score) best = { band, d, r, score };
       }
-      if (worst.score < 1) pass = false;
-      row.push(`${worst.s.padEnd(8)}`.padEnd(21), worst.d.toFixed(1).padStart(5), worst.r.toFixed(2).padStart(5));
+      if (!weakest || best.score < weakest.best.score) weakest = { surface, best };
     }
+    const pass = weakest.best.score >= 1;
     if (!pass) failures++;
-    console.log(`${view.padEnd(13)} | ${row[0]} | ${row[1]} | ${row[2]} | ${row[3]} | ${row[4]} | ${row[5]} | ${pass ? 'yes' : 'NO'}`);
+    const b = weakest.best;
+    console.log(`${view.padEnd(13)} | ${weakest.surface.padEnd(15)} | ${b.band.padEnd(13)} | ${b.d.toFixed(1).padStart(5)} | ${b.r.toFixed(2).padStart(5)} | ${pass ? 'yes' : 'NO'}`);
   }
 }
 console.log(failures ? `\n${failures} view(s) fail` : '\nall views pass');

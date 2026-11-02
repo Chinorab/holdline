@@ -23,4 +23,5 @@ export default defineAssets({
   'journal-panel': uikitml('journal.uikitml', 'Journal'),
   'captions-panel': uikitml('captions.uikitml', 'Captions'),
   'settings-panel': uikitml('settings.uikitml', 'Settings'),
+  'edge-panel': uikitml('edge.uikitml', 'Board edge controls'),
 });

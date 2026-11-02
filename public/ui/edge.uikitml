@@ -1,0 +1,39 @@
+<!--
+  One hand mode: board controls beside its near left corner (turn, smaller, larger), so the
+  board never needs a second hand. Shown only when One hand is on.
+-->
+<style>
+  .bar {
+    flex-direction: row;
+    gap: 16px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    border-radius: 8px;
+    background-color: #f3f1ed;
+  }
+  .btn {
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    background-color: #e4e2dd;
+    cursor: pointer;
+  }
+  .btn:hover {
+    background-color: #cac7c2;
+  }
+  .icon {
+    width: 52px;
+    height: 52px;
+    color: #1d1c1a;
+  }
+</style>
+<div class="bar">
+  <div id="edge-turn-left" class="btn"><RotateCcw class="icon"></RotateCcw></div>
+  <div id="edge-turn-right" class="btn"><RotateCw class="icon"></RotateCw></div>
+  <div id="edge-smaller" class="btn"><Minus class="icon"></Minus></div>
+  <div id="edge-larger" class="btn"><Plus class="icon"></Plus></div>
+</div>

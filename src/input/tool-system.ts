@@ -63,12 +63,15 @@ export class ToolInput {
   tool: StrokeTool | null = null;
   hoverListener: HoverListener | null = null;
   /** How the last finished stroke was made (status for the emulator gate). */
-  lastKind: 'far' | 'near' | null = null;
-  private active: { kind: 'far'; pointerId: number; object: Object3D } | { kind: 'near'; hand: Hand } | null = null;
+  lastKind: 'far' | 'near' | 'pointer' | null = null;
+  /** Hand and controller rays draw on the board (off while the head pointer does). */
+  farEnabled = true;
+  private active: { kind: 'far'; pointerId: number; object: Object3D } | { kind: 'near'; hand: Hand } | { kind: 'pointer' } | null = null;
   private activeTool: StrokeTool | null = null;
   private on = false;
   private hovering = false;
   private readonly pinching = { left: false, right: false };
+  private readonly pinchingNow = { left: false, right: false };
   private readonly overBoard = { left: false, right: false };
   private readonly thumb = new Vector3();
   private readonly index = new Vector3();
@@ -124,8 +127,41 @@ export class ToolInput {
     return null;
   }
 
+  /** Is either hand pinching (tracked hands only), whether or not over the board? */
+  get anyPinch(): boolean {
+    return this.pinchingNow.left || this.pinchingNow.right;
+  }
+
+  /** Board local terrain point under a world ray (into `out`), or false. */
+  terrainHit(origin: Vector3, direction: Vector3, out: Vector3): boolean {
+    const root = this.board.root;
+    root.updateWorldMatrix(true, false);
+    this.toBoard.copy(root.matrixWorld).invert();
+    out.copy(origin).applyMatrix4(this.toBoard);
+    this.dir.copy(direction).transformDirection(this.toBoard);
+    return this.march(out, this.dir);
+  }
+
+  /** Strokes from the head pointer or dwell select, in board local meters. */
+  beginExternal(x: number, z: number): boolean {
+    if (!this.on || this.active || !this.tool) return false;
+    this.endHover();
+    this.active = { kind: 'pointer' };
+    this.activeTool = this.tool;
+    this.activeTool.begin(x, z);
+    return true;
+  }
+
+  moveExternal(x: number, z: number): void {
+    if (this.active?.kind === 'pointer') this.activeTool?.move(x, z);
+  }
+
+  endExternal(): void {
+    if (this.active?.kind === 'pointer') this.finish();
+  }
+
   private farDown(e: FarEvent): void {
-    if (!this.on || this.active || !this.tool) return;
+    if (!this.on || this.active || !this.tool || !this.farEnabled) return;
     const hand = this.handOf(e);
     if (hand && this.overBoard[hand]) return;
     e.object.setPointerCapture(e.pointerId);
@@ -213,7 +249,7 @@ export class ToolInput {
   update(frame: unknown, space: unknown, dt: number): void {
     const f = frame as FrameWithJoints | null;
     const seen = { left: false, right: false };
-    if (this.on && f?.getJointPose && space) {
+    if (f?.getJointPose && space) {
       for (const source of f.session.inputSources) {
         const hand = source.handedness as Hand;
         if (!source.hand || (hand !== 'left' && hand !== 'right')) continue;
@@ -232,7 +268,8 @@ export class ToolInput {
         const was = this.pinching[hand];
         const now = was ? gap < PINCH_OFF_M : gap < PINCH_ON_M;
         this.pinching[hand] = now;
-        if (now && !was && this.overBoard[hand] && this.active?.kind !== 'near' && this.tool) {
+        this.pinchingNow[hand] = now;
+        if (now && !was && this.on && this.overBoard[hand] && this.active?.kind !== 'near' && this.tool) {
           if (this.active?.kind === 'far') this.cancel();
           this.endHover();
           this.active = { kind: 'near', hand };
@@ -247,6 +284,7 @@ export class ToolInput {
     for (const hand of HANDS) {
       if (seen[hand]) continue;
       this.pinching[hand] = false;
+      this.pinchingNow[hand] = false;
       this.overBoard[hand] = false;
       if (this.active?.kind === 'near' && this.active.hand === hand) this.finish();
     }

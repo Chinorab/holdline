@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-01 (Paris), slice e in progress
+Last update: 2026-11-02 (Paris), slice e done
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,22 +8,10 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Slice e in progress (work in progress commit). Done so far, not wired into the game yet:
-public/ui/settings.uikitml + src/ui/settings.ts (toggles, steppers, Day 0, Close), copy
-SETTINGS, pause card button Settings (replaces Day 0: btn-settings, handler not wired yet,
-so the pause card's Day 0 path is gone until settings are wired), high contrast in
-src/render/terrain-material.ts (setTerrainContrast) and Lines.setWidthScale, and
-scripts/cvd-check.mjs.
-
-The CVD check FAILS today: the fire core (#FFE7B7) is too close to grass in every view
-(dE under 11) and in grayscale the fire is close to water (dE 12, ratio 1.48). Decide the
-fix (darker core or stronger ink edge counted in the check) before going on.
-
-Then: wire settings into phases.ts (open from pause, apply each toggle), board size,
-height and turn (T071, edge controls panel in one hand mode), slower fire plan 45 s and
-result note (T072), dwell select and head pointer (T073: own head ray; IWSDK gaze has no
-head fallback), Glasses view mask 37/37/25/43 deg and compact layout (T074), fit check
-(T075), 72 Hz and foveation (T076), gate (T077).
+Slice e is done. Next: slice f, T078 onward in `specs/001-tabletop-wildfire/tasks.md`
+(landing and privacy pages from the canvas with local fonts, Vercel deploy, GitHub push to
+Chinorab/holdline, docs, DEVPOST.md, VIDEO_SCRIPT.md). Pushing and deploying need the user's
+go ahead.
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -46,6 +34,11 @@ head fallback), Glasses view mask 37/37/25/43 deg and compact layout (T074), fit
 - [x] Slice d (T060 to T068): journal with streak, best and burn scars, practice on the 7
       days before today, synthesized spatial sound, captions, room haze, smoke plume that
       stops at a detected ceiling. Gate: two dates by injection, streak 2, practice kept it.
+
+- [x] Slice e (T069 to T077): settings card (from the pause card), high contrast with a
+      color vision check, board size, height and turn (edge controls in one hand mode),
+      slower fire with a longer plan, dwell select and head pointer (own ray), Glasses view
+      frame and compact layout (automatic on the glasses), fit check, 72 Hz request.
 
 ## Next
 - [ ] Slices d, e, f as in tasks.md
@@ -98,6 +91,9 @@ head fallback), Glasses view mask 37/37/25/43 deg and compact layout (T074), fit
   (src/game/clock.ts); production ignores it.
 - Smoke and the haze run on frame time; the fire runs on the capped clock: in the slow
   pane the smoke looks fast relative to the fire.
+- The placement system reapplies the anchor pose every frame: move the board only through
+  `placement.adjust` (height, turn), never by setting its pose directly.
+- UIKit buttons: a recursive raycast from the panel misses them; `Panel.buttonHit` asks each.
 - Glasses profile in the emulator: `set_input_mode` hand first, gaze is the `gaze` device,
   pinch with `select` on `hand-left` (duration 1.2 s at the pane's frame rate).
 - Changing iwsdk.config.json restarts the dev server; a server started by an older session

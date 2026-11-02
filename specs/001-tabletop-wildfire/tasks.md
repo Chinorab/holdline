@@ -150,15 +150,15 @@ each sound shows its caption.
 **Independent test**: a fire day with the right hand only, the left hand only, gaze plus
 pinch only, and dwell only; every essential element inside the glasses design area.
 
-- [ ] T069 [US7] Settings panel public/ui/settings.uikitml from the canvas plus Captions, Dwell select, Head pointer, Board size, Board height, Replay Day 0, with src/ui/settings.ts
-- [ ] T070 [P] [US7] High contrast palette in src/render/terrain.glsl.ts and the panels, with scripts/cvd-check.mjs (fire against its closest surface under protanopia, deuteranopia, tritanopia, grayscale)
-- [ ] T071 [US7] Board transform in src/xr/board-transform.ts: two hand rim yaw and scale (45 to 60 cm), one hand edge controls, height offset
-- [ ] T072 [US7] Slower fire from settings to the DayConfig spread period, longer plan, note on the result card
-- [ ] T073 [US7] Dwell select in src/input/dwell-system.ts and head pointer in src/xr/head-pointer.ts (verify the custom ray pointer API at task start)
-- [ ] T074 [US7] Glasses view in src/xr/glasses-view.ts (head space mask 37, 37, 25, 43 degrees, compact layout, automatic compact layout on gaze devices)
-- [ ] T075 [US7] Fit check scripts/emulator/glasses-fit.mjs (iwsdk-glasses-test angle method for each essential element), table in TESTING.md
-- [ ] T076 Performance pass: request 72 Hz, fixed foveation, profile the peak fire, fix any breach, final numbers in PERF.md
-- [ ] T077 [US7] Gate: scripts/emulator/slice-e.mjs (right hand only, left hand only, gaze and pinch only, dwell only), screenshots, commit "slice e"
+- [x] T069 [US7] Settings panel public/ui/settings.uikitml from the canvas plus Captions, Dwell select, Head pointer, Board size, Board height, Replay Day 0, with src/ui/settings.ts (opened from the pause card)
+- [x] T070 [P] [US7] High contrast palette in src/render/terrain.glsl.ts and the panels, with scripts/cvd-check.mjs (fire against its closest surface under protanopia, deuteranopia, tritanopia, grayscale) (in terrain-material.ts; the check measures the three bands of the front against each surface; panels are already ink on paper)
+- [x] T071 [US7] Board transform in src/xr/board-transform.ts: two hand rim yaw and scale (45 to 60 cm), one hand edge controls, height offset (settings steppers and one hand edge controls, applied through placement.adjust; the two hand rim gesture is not built)
+- [x] T072 [US7] Slower fire from settings to the DayConfig spread period, longer plan, note on the result card
+- [x] T073 [US7] Dwell select in src/input/dwell-system.ts and head pointer in src/xr/head-pointer.ts (verify the custom ray pointer API at task start) (both in src/xr/head-pointer.ts; dwell strokes need a tool armed first)
+- [x] T074 [US7] Glasses view in src/xr/glasses-view.ts (head space mask 37, 37, 25, 43 degrees, compact layout, automatic compact layout on gaze devices)
+- [x] T075 [US7] Fit check scripts/emulator/glasses-fit.mjs (iwsdk-glasses-test angle method for each essential element), table in TESTING.md (as `holdlineGate.fit()` in slice-e.browser.js)
+- [x] T076 Performance pass: request 72 Hz, fixed foveation, profile the peak fire, fix any breach, final numbers in PERF.md (no breach: 76 draw calls, 172k triangles at most; 72 Hz itself needs a headset)
+- [x] T077 [US7] Gate: scripts/emulator/slice-e.mjs (right hand only, left hand only, gaze and pinch only, dwell only), screenshots, commit "slice e" (ran as scripts/emulator/slice-e.browser.js; see TESTING.md)
 
 ---
 

@@ -7,6 +7,10 @@ import {
   PokeInteractable,
   RayInteractable,
   type Entity,
+  type Intersection,
+  type Object3D,
+  type Raycaster,
+  type Vector3,
   type UIKitDocument,
   type World,
 } from '@iwsdk/core';
@@ -22,6 +26,9 @@ export class Panel {
   private readonly texts = new Map<string, string>();
   private readonly props = new Map<string, Props>();
   private readonly clicks: [string, () => void][] = [];
+  private readonly handlers = new Map<string, () => void>();
+  private readonly lastFired = new Map<string, number>();
+  private readonly hits: Intersection[] = [];
 
   constructor(
     world: World,
@@ -77,13 +84,51 @@ export class Panel {
     this.element(id)?.setProperties(props);
   }
 
-  onClick(id: string, fn: () => void): void {
+  onClick(id: string, handler: () => void): void {
+    // One press can arrive twice (a hand ray and the head pointer): fire once.
+    const fn = () => {
+      const now = performance.now();
+      if (now - (this.lastFired.get(id) ?? -1e9) < 350) return;
+      this.lastFired.set(id, now);
+      handler();
+    };
+    this.handlers.set(id, fn);
     this.clicks.push([id, fn]);
     const el = this.element(id);
     if (el) {
       el.name = id;
       el.addEventListener('click', fn);
     }
+  }
+
+  /** Press a button by id, as a click would (head pointer, dwell select). */
+  fire(id: string): void {
+    this.handlers.get(id)?.();
+  }
+
+  /**
+   * The nearest button under a ray. UIKit elements answer their own raycast, but a
+   * recursive raycast from the panel does not reach them, so each button is asked.
+   */
+  buttonHit(raycaster: Raycaster): { id: string; distance: number; point: Vector3 } | null {
+    let best: { id: string; distance: number; point: Vector3 } | null = null;
+    for (const id of this.handlers.keys()) {
+      const el = this.element(id) as unknown as Object3D | null;
+      if (!el || !this.shownInScene(el)) continue;
+      this.hits.length = 0;
+      el.raycast(raycaster, this.hits);
+      for (const h of this.hits) if (!best || h.distance < best.distance) best = { id, distance: h.distance, point: h.point.clone() };
+    }
+    return best;
+  }
+
+  private shownInScene(object: Object3D): boolean {
+    for (let o: Object3D | null = object; o; o = o.parent) if (!o.visible) return false;
+    return true;
+  }
+
+  get object(): Object3D | null {
+    return this.entity.object3D ?? null;
   }
 
   get visible(): boolean {
@@ -102,6 +147,11 @@ export class Panel {
       if (this.entity.hasComponent(RayInteractable)) this.entity.removeComponent(RayInteractable);
       if (this.entity.hasComponent(PokeInteractable)) this.entity.removeComponent(PokeInteractable);
     }
+  }
+
+  /** Uniform scale (compact layout); the panel keeps its authored proportions. */
+  setScale(scale: number): void {
+    this.entity.object3D?.scale.setScalar(scale);
   }
 
   /** Position on the board, tilted back by `tiltRad`, turned by `yawRad` (toward +x). */

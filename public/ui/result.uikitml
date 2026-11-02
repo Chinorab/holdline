@@ -65,6 +65,12 @@
     flex-direction: row;
     gap: 30px;
   }
+  .note {
+    display: none;
+    font-size: 32px;
+    font-weight: 700;
+    color: #5d5a56;
+  }
   .button {
     flex-direction: row;
     align-items: center;
@@ -120,6 +126,7 @@
       <span id="base-line" class="small">No line</span>
     </div>
   </div>
+  <span id="result-note" class="note">Slower fire</span>
   <div class="row">
     <div id="btn-replay" class="button">
       <RotateCcw class="button-icon"></RotateCcw>

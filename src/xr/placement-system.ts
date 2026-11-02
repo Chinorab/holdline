@@ -46,6 +46,10 @@ export const placement = {
   ceilingY: null as number | null,
   /** Set by the game for "Place again"; the system starts a new search. */
   redoRequested: false,
+  /** Player adjustments on top of the placed pose: height (settings) and turn. */
+  adjust: { heightM: 0, yawRad: 0 },
+  /** Set by the game when dwell select or the head pointer confirms the highlighted table. */
+  confirmRequested: false,
   onHandle: (_handle: string | null) => {},
   start(savedHandle: string | null): void {
     this.savedHandle = savedHandle;
@@ -144,6 +148,10 @@ export class PlacementSystem extends createSystem({
     const space = xr.getReferenceSpace() as unknown as SpaceLike | null;
     const session = xr.getSession() as unknown as SessionLike | null;
 
+    if (placement.confirmRequested) {
+      placement.confirmRequested = false;
+      if (placement.status === 'candidate') this.confirm('surface');
+    }
     if (placement.redoRequested) {
       placement.redoRequested = false;
       this.redo();
@@ -165,6 +173,8 @@ export class PlacementSystem extends createSystem({
           board.visible = true;
           placement.status = 'placed';
           placement.mode = 'restored';
+          this.appliedAdjust.heightM = 0;
+          this.appliedAdjust.yawRad = 0;
           placement.label = 'restored';
           this.elapsed = 0;
           return;
@@ -215,9 +225,20 @@ export class PlacementSystem extends createSystem({
             handle.quaternion.copy(board.quaternion);
           }
         }
-        if (!grabbed && frame && space) {
-          const m = this.anchors.poseMatrix(frame, space);
-          if (m) this.applyMatrix(board, m);
+        const m = !grabbed && frame && space ? this.anchors.poseMatrix(frame, space) : null;
+        if (m) {
+          // The anchor drives the pose every frame: the adjustment goes on top in full.
+          this.applyMatrix(board, m);
+          board.position.y += placement.adjust.heightM;
+          board.rotateY(placement.adjust.yawRad);
+          this.appliedAdjust.heightM = placement.adjust.heightM;
+          this.appliedAdjust.yawRad = placement.adjust.yawRad;
+        } else {
+          // No anchor pose this frame: apply only what changed.
+          board.position.y += placement.adjust.heightM - this.appliedAdjust.heightM;
+          board.rotateY(placement.adjust.yawRad - this.appliedAdjust.yawRad);
+          this.appliedAdjust.heightM = placement.adjust.heightM;
+          this.appliedAdjust.yawRad = placement.adjust.yawRad;
         }
         return;
       }
@@ -244,6 +265,9 @@ export class PlacementSystem extends createSystem({
     if (!board) return;
     placement.status = 'placed';
     placement.mode = mode;
+    // A fresh pose: the player's adjustment is applied on top of it from zero.
+    this.appliedAdjust.heightM = 0;
+    this.appliedAdjust.yawRad = 0;
     this.setProxyInteractive(false);
     this.elapsed = 0;
     const handle = this.handle?.object3D;
@@ -278,6 +302,7 @@ export class PlacementSystem extends createSystem({
   }
 
   private ceilingCheck = 0;
+  private readonly appliedAdjust = { heightM: 0, yawRad: 0 };
 
   /** About once a second: the lowest plane labeled ceiling, if the room has one. */
   private findCeiling(dt: number): void {

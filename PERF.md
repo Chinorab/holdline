@@ -61,6 +61,17 @@ Captions add one small panel, the haze one sphere, the smoke plume no draw (same
 mesh). The draw count is the highest so far and still under 100; slice e checks it again
 with the settings card.
 
+## Slice e (2026-11-02)
+
+| Moment | Draw calls | Triangles | Notes |
+|--------|-----------:|----------:|-------|
+| Live, Meta VR Glasses profile, 136 cells burning, 2 lines | 76 | 167,284 | compact layout |
+
+Requested on entering: 72 Hz through `updateTargetFrameRate` when the session lists 72 in
+`supportedFrameRates` (the emulator lists none, so this is untested here), and fixed
+foveation 1 (`renderer.xr.setFoveation`). New draws, only while shown: settings card, edge
+controls, pointer reticle and dwell ring, Glasses view frame.
+
 Production build (`npm run build`): main chunk 2.46 MB (680 KB gzip), UIKit font 423 KB,
 MSDF worker 456 KB, simulation worker 202 KB. Cold start to the placement highlight is
 measured on the deployed site in slice f.

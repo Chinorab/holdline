@@ -7,7 +7,7 @@ What ran, where, and what still needs a headset. Updated at each slice gate.
 | Suite | Command | Slice a result |
 |-------|---------|----------------|
 | Typecheck (app and tests) | `npm run typecheck` | clean |
-| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests; slice d: 20 files, 189 tests pass |
+| Unit tests (fire model, storage, anchors, copy) | `npm test` | slice a: 12 files, 122 tests; slice b: 15 files, 142 tests; slice c: 19 files, 167 tests; slice d: 20 files, 189 tests; slice e: 20 files, 208 tests pass |
 | Production build and dist check | `npm run build` | builds; `scripts/check-dist.mjs` ok (no agent notes, no source maps, every library URL explained) |
 
 The fire model tests cover: same day and inputs give the same state hash at every tick;
@@ -126,6 +126,33 @@ Found and fixed: the digging caption and sound flickered (the crew is idle for o
 between cells; digging now holds for a second); the scar miniatures drew unburned land in
 the tile color; plume puffs faded before reaching a ceiling 2 m above the table.
 
+## Emulator (slice e)
+
+Helper: `scripts/emulator/slice-e.browser.js` (`dwellGate`, `fit`, `seedSettings`). Settings
+were seeded in localStorage, or changed on the settings card through the head pointer.
+
+| Scenario | Profile | How | Result |
+|----------|---------|-----|--------|
+| Dwell only, no pinch | Quest 3 | head `look_at` only: the highlighted desk, Start, Dig line (arms one stroke), a board point, 4 more points, rest, Pause, Resume | placed on the desk, fire started, 1 line (stroke kind `pointer`), paused, resumed; watching the board alone draws nothing |
+| Head pointer and a pinch | Quest 3 hands | head `look_at` Start, right hand pinch; head `look_at` along 4 board points with the left hand pinch held | Start pressed, 1 line drawn |
+| Settings by head pointer | Quest 3 hands | Pause, Settings, High contrast, Board size up, Board height up twice, Turn right and left, Close, Resume | high contrast on (ink gain 1.6, fire edge 0.2, lines twice as wide), board 57 cm (scale 1.018), board 2 cm higher on top of its anchored pose, turned 15 degrees and back |
+| One hand | Quest 3 | One hand on | edge controls beside the near left corner; Smaller sets 55 cm |
+| Slower fire | Quest 3 | Slower fire on, next fire | plan 45 s, result card notes Slower fire |
+| Glasses view on a Quest | Quest 3 | Glasses view on | dark frame outside 37, 37, 25, 43 degrees; compact layout |
+| Compact layout on the glasses | Meta VR Glasses | Glasses view off | compact layout turns on by itself (the session has gaze tracking) |
+| Fit check, eyes on the board center | Meta VR Glasses | `holdlineGate.fit()` | every essential element inside (degrees, left..right and down..up): Board -23..23, -8..7; Toolbar 5..25, -14..-6; Strip -18..-4, -11..-8; Captions -19..-4, -14..-12; Briefing and Result -11..11, 10..22; Pause -9..9, 10..20; Settings -8..8, 10..23; Journal -23..-11, 8..18 |
+| Gaze and pinch only | Meta VR Glasses | gaze `look_at` Start, left hand pinch | Start pressed (a first press fell in the slow frame click window and was missed, as known) |
+| Either hand alone | Meta VR Glasses hands | a near pinch line with the right hand, then with the left | 2 lines, stroke kind `near` each |
+| Color vision | n/a | `node scripts/cvd-check.mjs` | every view passes, both palettes (weakest surface: brush, still 46 Delta E or more from a band of the front) |
+| Console | all runs | in page error collector | zero errors |
+
+Found and fixed: the anchor pose is reapplied every frame, which undid the height and turn
+settings (now applied on top of the anchor pose); a dwell stroke ended while the gaze had
+not moved yet; watching the board under dwell started strokes (a tool must now be armed);
+a dwell player could not confirm the table (the highlighted board is now a target); a
+recursive raycast does not reach UIKit buttons (each button is asked); the Settings card
+top reached the edge of the glasses view (smaller in the compact layout).
+
 ## Needs a headset
 
 - Frame rate at 72 Hz and the feel of pinch timing.
@@ -134,6 +161,8 @@ the tile color; plume puffs faded before reaching a ceiling 2 m above the table.
 - Panel button clicks by hand ray, gaze and poke at full frame rate.
 - Sound levels and spatial placement on real speakers; the emulator only proves the sources
   play at the intended volumes.
+- 72 Hz: the session asks for it when the headset lists it; the emulator lists no rates.
+- Dwell and head pointer comfort over a whole fire.
 - Haze strength over real passthrough (alpha is capped at 0.12).
 - Drawing feel: pinch thresholds (1.5 cm close, 3 cm open) and the 10 cm near zone with real
   hand tracking; the emulator's pinch is a pose switch.

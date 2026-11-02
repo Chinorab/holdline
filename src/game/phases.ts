@@ -12,7 +12,7 @@ import {
   createSystem,
   type Entity,
 } from '@iwsdk/core';
-import { ABOUT, BRIEF, INSTRUCTION, PAUSE, RESULT, STATUS } from '../copy.js';
+import { ABOUT, BRIEF, INSTRUCTION, PAUSE, RESULT, SETTINGS, STATUS } from '../copy.js';
 import { FireAudio } from '../audio/audio-system.js';
 import { BackburnTool } from '../input/backburn.js';
 import { DigTool } from '../input/dig-tool.js';
@@ -21,7 +21,8 @@ import { ToolInput, type StrokeTool } from '../input/tool-system.js';
 import { WaterTool } from '../input/water.js';
 import { Board } from '../render/board.js';
 import { Haze } from '../render/haze.js';
-import { TICK_HZ, dayNumber, windWord } from '../sim/day.js';
+import { setTerrainContrast } from '../render/terrain-material.js';
+import { SPREAD_PERIOD_TICKS, TICK_HZ, dayNumber, windWord } from '../sim/day.js';
 import { lineCells, WATER_LENGTH_CELLS, WATER_WIDTH_CELLS } from '../sim/inputs.js';
 import { W } from '../sim/grid.js';
 import type { BackburnSide, Input, OutcomeSide, RunKind, Tool } from '../sim/types.js';
@@ -31,19 +32,27 @@ import { SafeStore } from '../store/storage.js';
 import { Panel, uiUrl } from '../ui/panels.js';
 import { Captions, type CaptionKey } from '../ui/captions.js';
 import { JournalView } from '../ui/journal-view.js';
+import { SettingsView, type ToggleKey } from '../ui/settings.js';
 import { Toolbar } from '../ui/toolbar.js';
 import type { OutcomeInfo } from '../worker/client.js';
+import { GlassesView } from '../xr/glasses-view.js';
+import { AltPointer } from '../xr/head-pointer.js';
 import { placement } from '../xr/placement-system.js';
 import { todayId } from './clock.js';
 import { DAY0_END_S, DAY0_SCRIPT } from './day0.js';
 import { Session } from './session.js';
 import { BoardHandle, BoardHitProxy, BoardRoot } from './tags.js';
+import { InputComponent } from '@iwsdk/core';
 import { introFor, toolsFor } from './unlocks.js';
 
 export type Phase = 'landing' | 'placing' | 'day0' | 'brief' | 'plan' | 'live' | 'resolving' | 'outcome' | 'timelapse';
 
 const RISE_S = 8;
 const PLAN_S = 30;
+/** With Slower fire the plan phase is longer too. */
+const PLAN_SLOW_S = 45;
+/** Compact layout (Glasses): stand panels smaller and lower, journal nearer the center. */
+const COMPACT_SCALE = 0.8;
 const LAPSE_S = 10;
 /** How long a status line (No crew line left) stays on the strip. */
 const NOTICE_S = 2.5;
@@ -71,7 +80,7 @@ export interface GameStatus {
   lines: number;
   inputs: number;
   drawing: boolean;
-  lastStroke: 'far' | 'near' | null;
+  lastStroke: 'far' | 'near' | 'pointer' | null;
   resumable: boolean;
   dugCells: number;
   tools: Tool[];
@@ -87,6 +96,13 @@ export interface GameStatus {
   /** Seconds of game time since entering mixed reality (frames capped like the fire clock). */
   playSeconds: number;
   kind: RunKind;
+  settings: Record<string, unknown>;
+  compact: boolean;
+  pointer: string;
+  pointerAction: string;
+  boardScale: number;
+  edge: boolean;
+  planSeconds: number;
   audio: string;
   levels: Record<string, number>;
   caption: string;
@@ -110,7 +126,7 @@ export class GameSystem extends createSystem({}) {
   private dayNumber = 1;
   private kind: RunKind = 'daily';
   private lapse: OutcomeInfo | null = null;
-  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result' | 'inspect' | 'journal' | 'captions', Panel>;
+  private panels!: Record<'brief' | 'strip' | 'toolbar' | 'pause' | 'about' | 'result' | 'inspect' | 'journal' | 'captions' | 'settings' | 'edge', Panel>;
   private audio!: FireAudio;
   private captions!: Captions;
   private haze!: Haze;
@@ -119,6 +135,12 @@ export class GameSystem extends createSystem({}) {
   private digHold = 0;
   private captionText = '';
   private readonly ongoing = new Set<CaptionKey>();
+  private settingsView!: SettingsView;
+  private pointer!: AltPointer;
+  private glasses!: GlassesView;
+  private compact = false;
+  private wasSelect = false;
+  private selectDownNow = false;
   private journal!: JournalStore;
   private journalView!: JournalView;
   private readonly camWorld = new Vector3();
@@ -198,6 +220,8 @@ export class GameSystem extends createSystem({}) {
       inspect: make('InspectPanel', 'inspect.uikitml', 0.088, 0.022, false),
       journal: make('JournalPanel', 'journal.uikitml', 0.2, 0.18),
       captions: make('Captions', 'captions.uikitml', 0.16, 0.022, false),
+      settings: make('SettingsPanel', 'settings.uikitml', 0.34, 0.3),
+      edge: make('EdgeControls', 'edge.uikitml', 0.142, 0.032),
     };
     const { widthM, depthM } = this.board.dims;
     const stand = (p: Panel) => p.place(0, 0.1 + p.heightM / 2, -depthM / 2 - 0.03, -0.2);
@@ -205,6 +229,7 @@ export class GameSystem extends createSystem({}) {
     stand(this.panels.pause);
     stand(this.panels.about);
     stand(this.panels.result);
+    stand(this.panels.settings);
     // Just in front of the near edge, low, so they never cover the board from the eyes:
     // the strip on the left half, the toolbar on the right.
     this.panels.strip.place(-widthM / 2 + 0.16, 0.03, depthM / 2 + 0.045, -0.95);
@@ -218,7 +243,21 @@ export class GameSystem extends createSystem({}) {
     this.panels.pause.onClick('btn-resume', () => this.resume());
     this.panels.pause.onClick('btn-about', () => this.showAbout(true));
     this.panels.pause.onClick('btn-place', () => this.placeAgain());
-    this.panels.pause.onClick('btn-day0', () => this.replayDay0());
+    this.panels.pause.onClick('btn-settings', () => this.showSettings(true));
+    this.settingsView = new SettingsView(this.panels.settings, {
+      toggle: (key) => this.toggleSetting(key),
+      size: (d) => this.changeSetting({ boardWidthCm: Math.min(60, Math.max(45, this.store.settings.boardWidthCm + d)) }),
+      height: (d) => this.changeSetting({ boardHeightCm: Math.min(10, Math.max(-10, this.store.settings.boardHeightCm + d)) }),
+      turn: (deg) => this.turnBoard(deg),
+      day0: () => this.replayDay0(),
+      close: () => this.showSettings(false),
+    });
+    this.panels.edge.onClick('edge-turn-left', () => this.turnBoard(-15));
+    this.panels.edge.onClick('edge-turn-right', () => this.turnBoard(15));
+    this.panels.edge.onClick('edge-smaller', () => this.changeSetting({ boardWidthCm: Math.max(45, this.store.settings.boardWidthCm - 1) }));
+    this.panels.edge.onClick('edge-larger', () => this.changeSetting({ boardWidthCm: Math.min(60, this.store.settings.boardWidthCm + 1) }));
+    // Beside the near left corner, turned toward the player.
+    this.panels.edge.place(-widthM / 2 - 0.06, 0.03, depthM / 2 - 0.02, -0.6, 0.6);
     this.panels.about.onClick('btn-close', () => this.showAbout(false));
     this.panels.result.onClick('btn-replay', () => this.startLapse());
     this.panels.result.onClick('btn-done', () => this.playAgain());
@@ -278,8 +317,96 @@ export class GameSystem extends createSystem({}) {
     this.cleanupFuncs.push(() => window.removeEventListener('pointerdown', unlock));
     this.captions = new Captions(this.panels.captions);
     this.captions.enabled = this.store.settings.captions;
+    this.pointer = new AltPointer(this.board, this.tools, {
+      panels: () => Object.values(this.panels).filter((p) => p.interactive),
+      placing: () => this.phase === 'placing' && placement.status === 'candidate',
+      confirmPlacement: () => {
+        placement.confirmRequested = true;
+      },
+      boardEnabled: () => this.canAct() && this.readyForPlay,
+      selectDown: () => this.selectDownNow,
+      selectHeld: () => this.wasSelect,
+    });
+    this.world.scene.add(this.pointer.root);
+    this.glasses = new GlassesView(this.player.head);
     this.haze = new Haze();
     this.player.head.add(this.haze.mesh);
+    this.applySettings();
+  }
+
+  // Settings ------------------------------------------------------------------------------
+
+  private showSettings(on: boolean): void {
+    this.settingsView.render(this.store.settings);
+    this.panels.settings.show(on);
+    this.panels.pause.show(!on && this.paused);
+  }
+
+  private toggleSetting(key: ToggleKey): void {
+    const change = { [key]: !this.store.settings[key] } as Partial<typeof this.store.settings>;
+    this.changeSetting(change);
+    // Slower fire changes the spread of the next fire only.
+    if (key === 'slowerFire' && (this.phase === 'live' || this.phase === 'plan')) this.showNotice(SETTINGS.nextFire);
+  }
+
+  private changeSetting(change: Partial<typeof this.store.settings>): void {
+    this.store.saveSettings(change);
+    this.applySettings();
+    this.settingsView.render(this.store.settings);
+  }
+
+  /** Apply every setting that shows now (Slower fire waits for the next fire). */
+  private applySettings(): void {
+    const s = this.store.settings;
+    setTerrainContrast(this.board.terrainMaterial, s.highContrast);
+    this.board.lines.setWidthScale(s.highContrast ? 2 : 1);
+    this.audio.setEnabled(s.sound);
+    this.captions.enabled = s.captions;
+    this.pointer.head = s.headPointer;
+    this.pointer.dwell = s.dwellSelect;
+    // With the head pointer, hands and controllers press, the head aims: hand rays stop drawing.
+    this.tools.farEnabled = !s.headPointer;
+    this.board.root.scale.setScalar(s.boardWidthCm / 56);
+    this.applyHeight();
+    this.applyLayout();
+    this.panels.edge.show(s.oneHand && this.immersive && this.phase !== 'landing' && this.phase !== 'placing');
+  }
+
+  /** Board height on top of the placed pose (the placement system applies it every frame). */
+  private applyHeight(): void {
+    placement.adjust.heightM = this.store.settings.boardHeightCm / 100;
+  }
+
+  private turnBoard(deg: number): void {
+    placement.adjust.yawRad += (deg * Math.PI) / 180;
+  }
+
+  /** Compact layout on the glasses (or with Glasses view): smaller, lower stand panels. */
+  private applyLayout(): void {
+    const session = this.renderer.xr.getSession() as unknown as { enabledFeatures?: string[] } | null;
+    const gazeDevice = !!session?.enabledFeatures?.includes('gaze-tracking');
+    this.compact = this.store.settings.glassesView || gazeDevice;
+    this.glasses.visible = this.store.settings.glassesView && this.immersive;
+    const { widthM, depthM } = this.board.dims;
+    const k = this.compact ? COMPACT_SCALE : 1;
+    for (const p of [this.panels.brief, this.panels.pause, this.panels.about, this.panels.result, this.panels.settings]) {
+      // The settings card is the tallest: a little smaller again so its top stays in view.
+      const kp = this.compact && p === this.panels.settings ? 0.7 : k;
+      p.setScale(kp);
+      p.place(0, (this.compact ? 0.05 : 0.1) + (p.heightM * kp) / 2, -depthM / 2 - 0.03, this.compact ? -0.35 : -0.2);
+    }
+    this.panels.journal.setScale(k);
+    if (this.compact) this.panels.journal.place(-widthM / 2 + 0.02, 0.05 + 0.09 * k, -depthM / 2 + 0.02, -0.3, 0.35);
+    else this.panels.journal.place(-widthM / 2 - 0.13, 0.1 + 0.09, -0.02, -0.15, 0.45);
+  }
+
+  /** A pinch (tracked hands) or a trigger, either side. */
+  private updateSelect(): void {
+    const pads = this.input.xr.gamepads;
+    const pad = (p: typeof pads.left) => !!p && (p.getButtonPressed(InputComponent.Trigger) || false);
+    const held = this.tools.anyPinch || pad(pads.left) || pad(pads.right);
+    this.selectDownNow = held && !this.wasSelect;
+    this.wasSelect = held;
   }
 
   private strokeTool(tool: Tool | null): StrokeTool | null {
@@ -370,6 +497,9 @@ export class GameSystem extends createSystem({}) {
 
   private replayDay0(): void {
     this.paused = false;
+    this.session?.resume();
+    this.audio.setPaused(false);
+    this.panels.settings.show(false);
     this.panels.pause.show(false);
     this.panels.about.show(false);
     this.startDay0();
@@ -448,6 +578,7 @@ export class GameSystem extends createSystem({}) {
     const immersive = state !== VisibilityState.NonImmersive;
     if (immersive && !this.immersive) {
       this.immersive = true;
+      this.requestFrameRate();
       this.playSeconds = 0;
       this.board.root.visible = false;
       placement.start(this.store.progress.anchorHandle);
@@ -469,6 +600,17 @@ export class GameSystem extends createSystem({}) {
     if (state === VisibilityState.VisibleBlurred) this.pause();
   }
 
+  /** 72 Hz where the headset offers it, and full fixed foveation (edges cheaper). */
+  private requestFrameRate(): void {
+    const session = this.renderer.xr.getSession() as unknown as {
+      supportedFrameRates?: Float32Array;
+      updateTargetFrameRate?: (rate: number) => Promise<void>;
+    } | null;
+    this.renderer.xr.setFoveation(1);
+    const rates = session?.supportedFrameRates;
+    if (rates && Array.from(rates).includes(72)) void session?.updateTargetFrameRate?.(72).catch(() => {});
+  }
+
   private say(text: string): void {
     this.stripText = text;
     this.panels.strip.setText('strip-text', text);
@@ -486,6 +628,8 @@ export class GameSystem extends createSystem({}) {
     p.toolbar.show(phase === 'live' || phase === 'brief' || phase === 'plan' || phase === 'timelapse' || day0Line);
     p.pause.show(false);
     p.about.show(false);
+    p.settings.show(false);
+    p.edge.show(this.store.settings.oneHand && this.immersive && phase !== 'landing' && phase !== 'placing');
     p.strip.show(phase !== 'landing' && phase !== 'outcome' && phase !== 'resolving');
     this.board.outline.visible = false;
     if (phase !== 'plan' && phase !== 'day0') this.board.ghost.stop();
@@ -530,6 +674,11 @@ export class GameSystem extends createSystem({}) {
     const clamp = (c: { x: number; y: number }) => ({ x: Math.min(W - 1, Math.max(0, c.x)), y: Math.min(79, Math.max(0, c.y)) });
     this.board.ghost.play(this.ghostPath(path.map(clamp)), tool === 'water' ? 'drag' : 'hold');
     this.store.saveProgress({ introsShown: { ...this.store.progress.introsShown, [tool]: true } });
+  }
+
+  private planSeconds(): number {
+    const day = this.session?.day;
+    return day && day.spreadPeriodTicks > SPREAD_PERIOD_TICKS ? PLAN_SLOW_S : PLAN_S;
   }
 
   private startLive(): void {
@@ -648,7 +797,7 @@ export class GameSystem extends createSystem({}) {
     this.session?.pause();
     this.audio.setPaused(true);
     this.panels.pause.show(true);
-    this.panels.pause.setText('day0-label', PAUSE.day0);
+    this.panels.pause.setText('settings-label', PAUSE.settings);
     this.panels.brief.show(false);
     this.panels.result.show(false);
   }
@@ -660,6 +809,7 @@ export class GameSystem extends createSystem({}) {
     this.audio.setPaused(false);
     this.panels.pause.show(false);
     this.panels.about.show(false);
+    this.panels.settings.show(false);
     this.panels.brief.show(this.phase === 'brief' || this.phase === 'plan');
   }
 
@@ -691,6 +841,9 @@ export class GameSystem extends createSystem({}) {
     r.setText('base-burned', RESULT.burned(base.burnedHa));
     r.setText('you-line', RESULT.line(this.dugCells(info)));
     r.setText('base-line', RESULT.noLine);
+    const slow = (this.session?.day?.spreadPeriodTicks ?? SPREAD_PERIOD_TICKS) > SPREAD_PERIOD_TICKS;
+    r.setText('result-note', RESULT.slowerFire);
+    r.setProps('result-note', { display: slow ? 'flex' : 'none' });
     const progress = this.store.progress;
     this.store.saveProgress({
       completedFires: progress.completedFires + 1,
@@ -741,7 +894,12 @@ export class GameSystem extends createSystem({}) {
 
     const acting = this.canAct() && this.readyForPlay;
     this.tools.setEnabled(acting);
-    if (acting) this.tools.update(this.renderer.xr.getFrame(), this.renderer.xr.getReferenceSpace(), dt);
+    this.tools.update(this.renderer.xr.getFrame(), this.renderer.xr.getReferenceSpace(), dt);
+    this.updateSelect();
+    if (this.immersive) {
+      const eyes = this.player.gazeOrigin === 'tracked' ? this.player.eyeSpace : this.player.head;
+      this.pointer.update(this.paused ? dt : dt, eyes, this.player.head);
+    }
     this.inspect.update(acting ? dt : 0, this.tools.drawing || !acting);
     if (this.intro && this.tools.drawing) this.board.ghost.stop();
     const day = this.session?.day;
@@ -761,6 +919,7 @@ export class GameSystem extends createSystem({}) {
         this.board.outline.visible = placement.status === 'candidate';
         if (placement.status === 'placed') {
           this.board.root.visible = true;
+          this.applySettings();
           if (this.day0Active) this.enter('day0');
           else if (!this.store.progress.day0Done) this.startDay0();
           else this.enter('brief');
@@ -785,9 +944,10 @@ export class GameSystem extends createSystem({}) {
       }
       case 'plan': {
         this.board.setRise(1);
-        const left = Math.max(0, Math.ceil(PLAN_S - this.phaseTime));
+        const planS = this.planSeconds();
+        const left = Math.max(0, Math.ceil(planS - this.phaseTime));
         this.panels.brief.setText('start-label', `${BRIEF.start} ${left}`);
-        if (this.phaseTime >= PLAN_S) this.startLive();
+        if (this.phaseTime >= planS) this.startLive();
         break;
       }
       case 'live':
@@ -891,6 +1051,13 @@ export class GameSystem extends createSystem({}) {
           resumable: self.storedRun !== null,
           dugCells: self.dugCells(self.session?.outcome ?? null),
           kind: self.kind,
+          settings: { ...self.store.settings },
+          compact: self.compact,
+          pointer: self.pointer.targetLabel,
+          pointerAction: self.pointer.lastAction,
+          boardScale: self.board.root.scale.x,
+          edge: self.panels.edge.visible,
+          planSeconds: self.planSeconds(),
           audio: self.audio.state,
           levels: self.audio.levels(),
           caption: self.captionText,
