@@ -14,7 +14,7 @@ Demo video done (2:25, emulator capture, kept outside the repo; tooling
 in scripts/video). Devpost draft created and NOT
 submitted: https://devpost.com/software/holdline-fypjte (description, built with, links,
 thumbnail, 7 gallery stills). Left, all waiting on the author:
-1. Upload the video publicly to YouTube, then put the link in DEVPOST.md and the entry.
+1. Done 2026-11-16: video public at https://youtu.be/UP6k-HMTQzM, linked in DEVPOST.md and the draft.
 2. Submit on Devpost: membership email, country, and the 4 attestation checkboxes (Start
    membership, age of majority, eligible jurisdiction, not a sponsor or government employee)
    must be confirmed by the author. Answers to the other fields are in DEVPOST.md.

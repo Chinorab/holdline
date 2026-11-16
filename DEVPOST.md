@@ -1,7 +1,7 @@
 # Holdline: Devpost submission text
 
 Copy rules hold here too: no dashes or hyphens, no emojis, short, every figure sourced.
-Replace [VIDEO_URL] once the video is uploaded.
+Video: https://youtu.be/UP6k-HMTQzM (public, 2026-11-16).
 
 ## Form fields
 
@@ -12,7 +12,7 @@ Replace [VIDEO_URL] once the video is uploaded.
 - **Division:** New
 - **Build path:** IWSDK (Web XR)
 - **URL:** https://holdline-kappa.vercel.app
-- **Video:** [VIDEO_URL]
+- **Video:** https://youtu.be/UP6k-HMTQzM
 - **Target launch date:** Spring 2027, as a progressive web app on the Meta Horizon Store.
 
 ## Description (under 500 words)
