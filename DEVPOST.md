@@ -1,7 +1,7 @@
 # Holdline: Devpost submission text
 
 Copy rules hold here too: no dashes or hyphens, no emojis, short, every figure sourced.
-Video: https://youtu.be/UP6k-HMTQzM (public, 2026-11-16).
+Video: https://youtu.be/UP6k-HMTQzM (public). Submitted 2026-11-16: https://devpost.com/software/holdline-fypjte
 
 ## Form fields
 

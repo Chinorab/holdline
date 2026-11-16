@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-16 (Paris), video made, Devpost draft ready, waiting on the author
+Last update: 2026-11-16 (Paris), SUBMITTED on Devpost
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -8,18 +8,12 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 2026-11-18 20:00 UTC (12:00 PT, 21:00 Paris). Deployed HTTPS URL + video under 3 min.
 
 ## Current step
-Deployed: https://holdline-kappa.vercel.app (Vercel project `holdline`, team anas02-projects,
-deployed with the CLI only). Public repo: https://github.com/Chinorab/holdline, tag v1.0.0.
-Demo video done (2:25, emulator capture, kept outside the repo; tooling
-in scripts/video). Devpost draft created and NOT
-submitted: https://devpost.com/software/holdline-fypjte (description, built with, links,
-thumbnail, 7 gallery stills). Left, all waiting on the author:
-1. Done 2026-11-16: video public at https://youtu.be/UP6k-HMTQzM, linked in DEVPOST.md and the draft.
-2. Submit on Devpost: membership email, country, and the 4 attestation checkboxes (Start
-   membership, age of majority, eligible jurisdiction, not a sponsor or government employee)
-   must be confirmed by the author. Answers to the other fields are in DEVPOST.md.
-Deadline 2026-11-18 20:00 UTC (21:00 Paris). Then no production change until after
-2026-12-11 (no redeploy; Vercel has no Git integration, so pushes are safe).
+SUBMITTED on Devpost on 2026-11-16 at 12:16 Paris: https://devpost.com/software/holdline-fypjte
+(Gaming track, New division, IWSDK build path, video https://youtu.be/UP6k-HMTQzM).
+Live: https://holdline-kappa.vercel.app (Vercel CLI deploys only). Repo: Chinorab/holdline, tag v1.0.0.
+Freeze: no production change until after 2026-12-11 (judging Nov 23 to Dec 10, winners
+Dec 11 18:00 UTC). Pushes are safe since Vercel has no Git integration; do not redeploy.
+Keep the YouTube video public. The entry can still be edited until 2026-11-18 20:00 UTC.
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
