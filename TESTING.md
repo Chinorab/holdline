@@ -171,6 +171,21 @@ a dwell player could not confirm the table (the highlighted board is now a targe
 recursive raycast does not reach UIKit buttons (each button is asked); the Settings card
 top reached the edge of the glasses view (smaller in the compact layout).
 
+## Final pass and demo video (2026-11-16)
+
+| Check | Where | Result |
+|-------|-------|--------|
+| Unit tests | Node | 199 passed |
+| Types, build, dist check | Node | clean, check-dist ok (51 files) |
+| Web pages | dev server and https://holdline-kappa.vercel.app | 5 passed, zero console errors, no third party request |
+| Fresh visit, Day 0 by hand | Quest 3 hands, headed Chromium, about 50 fps | placed on the desk by a hand ray pinch, three beats lit by a near pinch, guided line drawn by a near pinch, Contained at 136 s of game time |
+| A daily fire with every tool | Quest 3 hands | far line by the hand ray, near line by a pinch, Start by ray, backburn hold, water drop by ray with the aircraft; 6 of 6 houses standing against 3 of 6 with no action, 392 ha against 427 ha; journal streak 5 (days 12 to 15 played before); 84 draw calls, 170k triangles; zero errors |
+| Settings and dwell | Quest 3 hands | Pause, Settings, High contrast and Dwell select by ray; Close and Resume by dwell alone |
+
+Found and fixed in the capture tooling only: the emulator shows its own panels after about
+30 s without a remote command (hidden during capture), and a near stroke has to start a few
+centimeters above the relief, not at the board's base height.
+
 ## Needs a headset
 
 - Frame rate at 72 Hz and the feel of pinch timing.

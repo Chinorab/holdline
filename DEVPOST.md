@@ -48,7 +48,7 @@ keep it there, hand tracking for every action, gaze on Meta VR Glasses, UIKit pa
 is a cellular automaton after Alexandridis et al. 2008, written to be deterministic (counter
 based random numbers, our own exp and trig), so the no action comparison and every replay
 are exact. It runs in a Web Worker; the main thread owns the clock, so pause is real pause.
-Sounds are synthesized in code and placed in the room. 208 automated tests cover the model,
+Sounds are synthesized in code and placed in the room. 199 automated tests cover the model,
 storage, unlocks, the journal and the copy.
 
 ### Challenges

@@ -178,7 +178,7 @@ third party request; the 3 step judge test works in the emulator.
 - [x] T085 [P] README.md (run steps, 3 step judge test), TESTING.md (what ran where, what needs a headset), CREDITS.md (fonts OFL, IWSDK MIT, sounds original, paper citation), PERF.md final
 - [x] T086 [P] DEVPOST.md (Inspiration with research R1 sources, What it does, How we built it, Challenges, Accomplishments, What we learned, What's next with a spring 2027 Meta Horizon Store PWA target, form answers for capabilities and hand interactions)
 - [x] T087 [P] VIDEO_SCRIPT.md under 2:45 (problem in 10 s, board landing, a full fire day, outcome versus no action, journal; real capture only)
-- [ ] T088 Final pass: copy scan, dist check, full emulator run on both profiles, design skill review of pages and panels, PROGRESS.md, release tag, production frozen until after 2026-12-11
+- [x] T088 Final pass: copy scan, dist check, full emulator run on both profiles, design skill review of pages and panels, PROGRESS.md, release tag, production frozen until after 2026-12-11 (2026-11-16: 199 unit tests, typecheck, build and check-dist, 5 web tests including the live site, full Quest 3 run for the video; Glasses fit from the slice e gate; tag v1.0.0)
 
 ---
 

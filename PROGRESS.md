@@ -1,6 +1,6 @@
 # Holdline (formerly Backburn): progress
 
-Last update: 2026-11-02 (Paris), deployed and pushed
+Last update: 2026-11-16 (Paris), video made, Devpost draft ready, waiting on the author
 
 ## Goal
 Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (Devpost
@@ -9,12 +9,17 @@ Mixed reality wildfire game for the Meta VR Start Developer Competition 2026 (De
 
 ## Current step
 Deployed: https://holdline-kappa.vercel.app (Vercel project `holdline`, team anas02-projects,
-deployed with the CLI only: `npx vercel@latest deploy --prod --yes --scope anas02-projects`).
-Public repo: https://github.com/Chinorab/holdline (branch main; local branch
-001-tabletop-wildfire tracks it). Left: the video (VIDEO_SCRIPT.md, [VIDEO_URL] in
-DEVPOST.md), a headset check if one is available, T088 final pass and release tag, the
-Devpost submission before 2026-11-18 20:00 UTC, then no production change until after
-2026-12-11.
+deployed with the CLI only). Public repo: https://github.com/Chinorab/holdline, tag v1.0.0.
+Demo video done (2:25, emulator capture, kept outside the repo; tooling
+in scripts/video). Devpost draft created and NOT
+submitted: https://devpost.com/software/holdline-fypjte (description, built with, links,
+thumbnail, 7 gallery stills). Left, all waiting on the author:
+1. Upload the video publicly to YouTube, then put the link in DEVPOST.md and the entry.
+2. Submit on Devpost: membership email, country, and the 4 attestation checkboxes (Start
+   membership, age of majority, eligible jurisdiction, not a sponsor or government employee)
+   must be confirmed by the author. Answers to the other fields are in DEVPOST.md.
+Deadline 2026-11-18 20:00 UTC (21:00 Paris). Then no production change until after
+2026-12-11 (no redeploy; Vercel has no Git integration, so pushes are safe).
 
 ## Done
 - [x] Spec Kit: constitution v1.0.1, spec, clarifications, plan, research, data model,
@@ -107,3 +112,7 @@ Devpost submission before 2026-11-18 20:00 UTC, then no production change until 
   pinch with `select` on `hand-left` (duration 1.2 s at the pane's frame rate).
 - Changing iwsdk.config.json restarts the dev server; a server started by an older session
   stops instead, so start `holdline-dev` again.
+
+- [x] Final pass (T088, 2026-11-16): 199 unit tests, typecheck, build and check-dist, 5 web
+      tests including the live site; full Quest 3 emulator run while recording the video;
+      tag v1.0.0. Demo video 2:25 with narration, captions and speed badges.
